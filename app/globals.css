@@ -264,3 +264,30 @@ body {
   );
   transform: translateX(1px);
 }
+
+/* ====== Card micro-interactions ====== */
+
+.card {
+  transition:
+    box-shadow 140ms ease-out,
+    transform 120ms ease-out;
+}
+
+.card-soft {
+  transition:
+    box-shadow 140ms ease-out,
+    transform 120ms ease-out,
+    border-color 140ms ease-out,
+    background 140ms ease-out;
+}
+
+.card-soft:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.9);
+  background: radial-gradient(
+    circle at top left,
+    rgba(148, 163, 184, 0.12),
+    rgba(15, 23, 42, 1)
+  );
+  border-color: rgba(148, 163, 184, 0.35);
+}
