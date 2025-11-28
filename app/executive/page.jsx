@@ -30,10 +30,12 @@ export default function ExecutiveDashboard() {
             </button>
           </Link>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Grant & reporting</div>
-            <div className="sidebar-link-subtitle">Metrics</div>
-          </button>
+          <Link href="/executive/grants">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Grant & reporting</div>
+              <div className="sidebar-link-subtitle">Metrics</div>
+            </button>
+          </Link>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
