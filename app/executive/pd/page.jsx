@@ -3,6 +3,12 @@ import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 
 export default async function ExecutivePDPage() {
+  // 🔎 DEBUG: show whether env vars are visible to this page
+  const envDebug = {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "set" : "missing",
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "set" : "missing",
+  };
+
   const supabase = createSupabaseClient();
 
   let events = [];
@@ -80,6 +86,18 @@ export default async function ExecutivePDPage() {
                 development for interns and supervisors—and how it aligns with MFFS
                 priorities and grant commitments.
               </p>
+
+              {/* 🔎 Show env status VERY SMALL */}
+              <p
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#9ca3af",
+                  marginTop: "0.4rem",
+                }}
+              >
+                Env debug — URL: <strong>{envDebug.url}</strong>, Key:{" "}
+                <strong>{envDebug.key}</strong>
+              </p>
             </div>
           </header>
 
@@ -93,7 +111,7 @@ export default async function ExecutivePDPage() {
               background:
                 "radial-gradient(circle at top left, rgba(148,163,184,0.16), rgba(15,23,42,1))",
               display: "grid",
-              gap: "0.7rem"
+              gap: "0.7rem",
             }}
           >
             <div
@@ -102,7 +120,7 @@ export default async function ExecutivePDPage() {
                 justifyContent: "space-between",
                 gap: "0.75rem",
                 alignItems: "baseline",
-                flexWrap: "wrap"
+                flexWrap: "wrap",
               }}
             >
               <div>
@@ -112,7 +130,7 @@ export default async function ExecutivePDPage() {
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                     color: "#e5e7eb",
-                    marginBottom: "0.25rem"
+                    marginBottom: "0.25rem",
                   }}
                 >
                   Live example · Professional development events
@@ -121,7 +139,7 @@ export default async function ExecutivePDPage() {
                   style={{
                     fontSize: "0.78rem",
                     color: "#cbd5f5",
-                    maxWidth: "32rem"
+                    maxWidth: "32rem",
                   }}
                 >
                   These rows are loaded directly from the{" "}
@@ -131,7 +149,7 @@ export default async function ExecutivePDPage() {
                       backgroundColor: "rgba(15,23,42,0.9)",
                       padding: "0.08rem 0.3rem",
                       borderRadius: "0.35rem",
-                      border: "1px solid rgba(30,64,175,0.8)"
+                      border: "1px solid rgba(30,64,175,0.8)",
                     }}
                   >
                     professional_development_events
@@ -146,7 +164,7 @@ export default async function ExecutivePDPage() {
               <p
                 style={{
                   fontSize: "0.75rem",
-                  color: "#fecaca"
+                  color: "#fecaca",
                 }}
               >
                 {loadError}
@@ -157,7 +175,7 @@ export default async function ExecutivePDPage() {
               <p
                 style={{
                   fontSize: "0.78rem",
-                  color: "#e5e7eb"
+                  color: "#e5e7eb",
                 }}
               >
                 There are no professional development events in the database yet. Once
@@ -169,7 +187,7 @@ export default async function ExecutivePDPage() {
               <div
                 style={{
                   display: "grid",
-                  gap: "0.55rem"
+                  gap: "0.55rem",
                 }}
               >
                 {events.map((event) => (
@@ -188,7 +206,7 @@ export default async function ExecutivePDPage() {
               bullets={[
                 "Month-by-month view of PD offerings",
                 "Filters by audience (interns, supervisors, staff)",
-                "Shows modality (online, in-person, hybrid)"
+                "Shows modality (online, in-person, hybrid)",
               ]}
             />
 
@@ -199,7 +217,7 @@ export default async function ExecutivePDPage() {
               bullets={[
                 "Tags for topic, population focus, and modality",
                 "Links to strategic priorities and specific grants",
-                "Quick view of which areas are heavily supported vs. under-resourced"
+                "Quick view of which areas are heavily supported vs. under-resourced",
               ]}
             />
 
@@ -210,7 +228,7 @@ export default async function ExecutivePDPage() {
               bullets={[
                 "Attendance across interns, supervisors, and staff",
                 "Completion markers for required trainings",
-                "Identify where follow-up or make-up sessions are needed"
+                "Identify where follow-up or make-up sessions are needed",
               ]}
             />
 
@@ -221,7 +239,7 @@ export default async function ExecutivePDPage() {
               bullets={[
                 "Request queue for new PD ideas",
                 "Tags on requests (topic, urgency, target audience)",
-                "Helps prioritize offerings that meet real front-line needs"
+                "Helps prioritize offerings that meet real front-line needs",
               ]}
             />
 
@@ -232,7 +250,7 @@ export default async function ExecutivePDPage() {
               bullets={[
                 "Cross-reference PD themes with client/population trends",
                 "Demonstrate how PD supports safe, ethical practice",
-                "Provide narrative material for quality improvement work"
+                "Provide narrative material for quality improvement work",
               ]}
             />
 
@@ -243,7 +261,7 @@ export default async function ExecutivePDPage() {
               bullets={[
                 "Counts of PD sessions and participants per period",
                 "Breakdown by role, site, and topic",
-                "Evidence of ongoing investment in training and supervision"
+                "Evidence of ongoing investment in training and supervision",
               ]}
             />
           </div>
@@ -257,7 +275,7 @@ function EventRow({ event }) {
   const dateText = event.starts_at
     ? new Date(event.starts_at).toLocaleString("en-CA", {
         dateStyle: "medium",
-        timeStyle: "short"
+        timeStyle: "short",
       })
     : "Date TBA";
 
@@ -274,7 +292,7 @@ function EventRow({ event }) {
       style={{
         padding: "0.6rem 0.75rem",
         display: "grid",
-        gap: "0.15rem"
+        gap: "0.15rem",
       }}
     >
       <div
@@ -282,14 +300,14 @@ function EventRow({ event }) {
           display: "flex",
           justifyContent: "space-between",
           gap: "0.5rem",
-          flexWrap: "wrap"
+          flexWrap: "wrap",
         }}
       >
         <p
           style={{
             fontSize: "0.86rem",
             fontWeight: 500,
-            color: "#f9fafb"
+            color: "#f9fafb",
           }}
         >
           {event.title || "Untitled event"}
@@ -299,7 +317,7 @@ function EventRow({ event }) {
             style={{
               fontSize: "0.74rem",
               color: "#a5b4fc",
-              whiteSpace: "nowrap"
+              whiteSpace: "nowrap",
             }}
           >
             Capacity: {event.capacity}
@@ -310,7 +328,7 @@ function EventRow({ event }) {
       <p
         style={{
           fontSize: "0.76rem",
-          color: "#cbd5f5"
+          color: "#cbd5f5",
         }}
       >
         {dateText}
@@ -323,7 +341,7 @@ function EventRow({ event }) {
       <p
         style={{
           fontSize: "0.74rem",
-          color: "#9ca3af"
+          color: "#9ca3af",
         }}
       >
         {admissionLabel}
@@ -334,7 +352,7 @@ function EventRow({ event }) {
           style={{
             fontSize: "0.75rem",
             color: "#9ca3af",
-            marginTop: "0.15rem"
+            marginTop: "0.15rem",
           }}
         >
           {event.description}
@@ -353,7 +371,7 @@ function PDCard({ label, title, body, bullets }) {
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: "#9ca3af",
-          marginBottom: "0.25rem"
+          marginBottom: "0.25rem",
         }}
       >
         {label}
@@ -363,7 +381,7 @@ function PDCard({ label, title, body, bullets }) {
           fontSize: "0.9rem",
           fontWeight: 500,
           marginBottom: "0.3rem",
-          color: "#f9fafb"
+          color: "#f9fafb",
         }}
       >
         {title}
@@ -373,7 +391,7 @@ function PDCard({ label, title, body, bullets }) {
           fontSize: "0.78rem",
           color: "#cbd5f5",
           lineHeight: 1.5,
-          marginBottom: "0.45rem"
+          marginBottom: "0.45rem",
         }}
       >
         {body}
@@ -387,7 +405,7 @@ function PDCard({ label, title, body, bullets }) {
             display: "grid",
             gap: "0.15rem",
             fontSize: "0.75rem",
-            color: "#9ca3af"
+            color: "#9ca3af",
           }}
         >
           {bullets.map((item) => (
