@@ -20,10 +20,12 @@ export default function SupervisorDashboard() {
             </button>
           </Link>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Supervision sessions</div>
-            <div className="sidebar-link-subtitle">Logs</div>
-          </button>
+          <Link href="/supervisor/supervision">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Supervision sessions</div>
+              <div className="sidebar-link-subtitle">Logs</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Invoices & receipts</div>
@@ -33,7 +35,7 @@ export default function SupervisorDashboard() {
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Professional development</div>
             <div className="sidebar-link-subtitle">MFFS-only</div>
-          </button>
+            </button>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
