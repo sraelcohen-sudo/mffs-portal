@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GraduationCap, Users, Crown, Sparkles } from "lucide-react";
 
@@ -8,6 +9,21 @@ const ROLES = ["intern", "supervisor", "executive", "training"];
 
 export default function LoginPage() {
   const [role, setRole] = useState("intern");
+  const router = useRouter();
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    // Simple demo routing – no real auth yet
+    if (role === "intern") {
+      router.push("/intern");
+    } else if (role === "supervisor") {
+      router.push("/supervisor");
+    } else {
+      // executive + training both go to executive overview for now
+      router.push("/executive");
+    }
+  }
 
   return (
     <main className="main-shell">
@@ -114,7 +130,7 @@ export default function LoginPage() {
             }}
           >
             <form
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleSubmit}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -145,7 +161,7 @@ export default function LoginPage() {
                 style={{ justifyContent: "center", marginTop: "0.5rem" }}
               >
                 <Sparkles size={14} />
-                Placeholder login (UI only)
+                Continue to {labelForRole(role)} portal
               </button>
 
               <p
@@ -155,8 +171,9 @@ export default function LoginPage() {
                   marginTop: "0.3rem"
                 }}
               >
-                Authentication will be wired to Supabase later. This screen is
-                for visual design and stakeholder walkthroughs only.
+                This is a demo login. In the real system, this form will connect
+                to secure authentication (e.g., Supabase) and only route to portals
+                after a successful login.
               </p>
             </form>
 
@@ -198,7 +215,7 @@ export default function LoginPage() {
                     marginBottom: "0.4rem"
                   }}
                 >
-                  After successful login, users will be routed to:
+                  After successful login, users are routed to:
                 </p>
                 <ul
                   style={{
