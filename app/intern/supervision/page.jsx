@@ -27,7 +27,7 @@ export default async function InternSupervisionPage() {
       `
       )
       .order("occurred_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error) {
       console.error("Error loading supervision sessions for intern view:", error);
@@ -39,6 +39,20 @@ export default async function InternSupervisionPage() {
     loadError =
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
   }
+
+  // --- HOURS SUMMARY (MINUTES → HOURS) ---
+  const submittedMinutes = sessions
+    .filter((s) => s.status === "submitted")
+    .reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+
+  const draftMinutes = sessions
+    .filter((s) => s.status === "draft")
+    .reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+
+  const totalMinutes = submittedMinutes + draftMinutes;
+
+  const toHours = (mins) =>
+    mins && mins > 0 ? (mins / 60).toFixed(1) : "0.0";
 
   return (
     <main className="main-shell">
@@ -98,6 +112,56 @@ export default async function InternSupervisionPage() {
               </p>
             </div>
           </header>
+
+          {/* HOURS SUMMARY TILE */}
+          <section
+            style={{
+              marginTop: "0.6rem",
+              marginBottom: "1.0rem",
+              padding: "0.7rem 0.9rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.5)",
+              background:
+                "radial-gradient(circle at top left, rgba(15,23,42,1), rgba(15,23,42,1))",
+              display: "grid",
+              gap: "0.45rem"
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.72rem",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#9ca3af"
+              }}
+            >
+              Your supervision hours (prototype snapshot)
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.85rem"
+              }}
+            >
+              <SummaryPill
+                label="Submitted hours"
+                value={`${toHours(submittedMinutes)} h`}
+                hint="Hours that are finalized / counted"
+              />
+              <SummaryPill
+                label="Draft hours"
+                value={`${toHours(draftMinutes)} h`}
+                hint="Hours recorded but still being finalized"
+              />
+              <SummaryPill
+                label="Total hours logged"
+                value={`${toHours(totalMinutes)} h`}
+                hint="All supervision time recorded so far"
+              />
+            </div>
+          </section>
 
           {/* LIVE SESSIONS AS SEEN BY INTERN */}
           <section
@@ -279,6 +343,50 @@ export default async function InternSupervisionPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function SummaryPill({ label, value, hint }) {
+  return (
+    <div
+      style={{
+        padding: "0.45rem 0.7rem",
+        borderRadius: "0.75rem",
+        border: "1px solid rgba(148,163,184,0.6)",
+        backgroundColor: "rgba(15,23,42,0.9)",
+        display: "grid",
+        gap: "0.1rem",
+        minWidth: "9rem"
+      }}
+    >
+      <p
+        style={{
+          fontSize: "0.72rem",
+          color: "#9ca3af"
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          fontSize: "0.98rem",
+          fontWeight: 500,
+          color: "#e5e7eb"
+        }}
+      >
+        {value}
+      </p>
+      {hint && (
+        <p
+          style={{
+            fontSize: "0.7rem",
+            color: "#6b7280"
+          }}
+        >
+          {hint}
+        </p>
+      )}
+    </div>
   );
 }
 
