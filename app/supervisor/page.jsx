@@ -27,10 +27,12 @@ export default function SupervisorDashboard() {
             </button>
           </Link>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Invoices & receipts</div>
-            <div className="sidebar-link-subtitle">Payment</div>
-          </button>
+          <Link href="/supervisor/invoices">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Invoices & receipts</div>
+              <div className="sidebar-link-subtitle">Payment</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Professional development</div>
