@@ -1,6 +1,7 @@
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
+import NewSupervisionSessionForm from "@/app/components/NewSupervisionSessionForm";
 
 export default async function SupervisorSupervisionPage() {
   const supabase = createSupabaseClient();
@@ -206,6 +207,9 @@ export default async function SupervisorSupervisionPage() {
             )}
           </section>
 
+          {/* FORM TO ADD A NEW SESSION */}
+          <NewSupervisionSessionForm />
+
           {/* DESCRIPTIVE CARDS BELOW (STATIC DESIGN) */}
           <div className="card-grid">
             <SupervisionCard
@@ -329,8 +333,7 @@ function SessionRow({ session }) {
         <p
           style={{
             fontSize: "0.74rem",
-            color:
-              session.status === "submitted" ? "#bbf7d0" : "#fde68a",
+            color: session.status === "submitted" ? "#bbf7d0" : "#fde68a",
             whiteSpace: "nowrap"
           }}
         >
