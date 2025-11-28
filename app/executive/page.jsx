@@ -18,10 +18,12 @@ export default function ExecutiveDashboard() {
             <div className="sidebar-link-subtitle">Interns, supervisors</div>
           </button>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Clients & capacity</div>
-            <div className="sidebar-link-subtitle">Waitlist & load</div>
-          </button>
+          <Link href="/executive/capacity">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Clients & capacity</div>
+              <div className="sidebar-link-subtitle">Waitlist & load</div>
+            </button>
+          </Link>
 
           <Link href="/executive/pd">
             <button className="sidebar-link" type="button">
