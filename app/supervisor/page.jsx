@@ -13,10 +13,12 @@ export default function SupervisorDashboard() {
             <div className="sidebar-link-subtitle">Today</div>
           </button>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Assigned interns</div>
-            <div className="sidebar-link-subtitle">Caseload</div>
-          </button>
+          <Link href="/supervisor/interns">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Assigned interns</div>
+              <div className="sidebar-link-subtitle">Caseload</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Supervision sessions</div>
