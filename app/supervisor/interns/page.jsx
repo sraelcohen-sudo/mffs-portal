@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function SupervisorInternsPage() {
   return (
@@ -18,7 +19,7 @@ export default function SupervisorInternsPage() {
           <button className="sidebar-link sidebar-link--active" type="button">
             <div className="sidebar-link-title">Assigned interns</div>
             <div className="sidebar-link-subtitle">Caseload</div>
-          </button>
+            </button>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Supervision sessions</div>
@@ -47,6 +48,7 @@ export default function SupervisorInternsPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Supervisor" />
               <h1 className="section-title">Assigned interns</h1>
               <p className="section-subtitle">
                 A clear, privacy-respecting view of the interns each supervisor is

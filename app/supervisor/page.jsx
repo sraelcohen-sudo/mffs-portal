@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function SupervisorDashboard() {
   return (
@@ -37,7 +38,7 @@ export default function SupervisorDashboard() {
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Professional development</div>
             <div className="sidebar-link-subtitle">MFFS-only</div>
-            </button>
+          </button>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
@@ -51,6 +52,7 @@ export default function SupervisorDashboard() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Supervisor" />
               <h1 className="section-title">Supervisor overview (preview)</h1>
               <p className="section-subtitle">
                 High-level prototype of the experience supervisors will have in the

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function ExecutiveGrantsPage() {
   return (
@@ -11,30 +12,27 @@ export default function ExecutiveGrantsPage() {
           <Link href="/executive">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">High-level</div>
+              <div className="sidebar-link-subtitle">Today</div>
             </button>
           </Link>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">People & roles</div>
-            <div className="sidebar-link-subtitle">Interns, supervisors</div>
-          </button>
-
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Clients & capacity</div>
-            <div className="sidebar-link-subtitle">Waitlist & load</div>
-          </button>
+          <Link href="/executive/capacity">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Clients & capacity</div>
+              <div className="sidebar-link-subtitle">Sites & programs</div>
+            </button>
+          </Link>
 
           <Link href="/executive/pd">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Professional development</div>
-              <div className="sidebar-link-subtitle">Calendar</div>
+              <div className="sidebar-link-subtitle">Calendar & uptake</div>
             </button>
           </Link>
 
           <button className="sidebar-link sidebar-link--active" type="button">
             <div className="sidebar-link-title">Grant & reporting</div>
-            <div className="sidebar-link-subtitle">Metrics</div>
+            <div className="sidebar-link-subtitle">Impact metrics</div>
           </button>
 
           <Link href="/login">
@@ -49,79 +47,80 @@ export default function ExecutiveGrantsPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
-              <h1 className="section-title">Grant & reporting metrics</h1>
+              <RoleChip role="Executive" />
+              <h1 className="section-title">Grant & reporting</h1>
               <p className="section-subtitle">
-                Anonymized activity from interns and supervisors rolls up into
-                simple, grant-ready views of impact—without exposing client
-                identities.
+                A grant-writer-friendly view of anonymized, structured data: who is
+                being served, how, and with what intensity—plus narrative hooks that
+                make reporting easier and more accurate.
               </p>
             </div>
           </header>
 
           <div className="card-grid">
-            <MetricCard
-              label="Sessions"
-              title="Sessions delivered"
-              body="At a glance: total sessions delivered by interns and supervisors over a period, broken down by individual, couple/family, and group. Filters allow executives to see trends by site, program, or grant."
+            <GrantCard
+              label="Service volume"
+              title="Sessions and clients served"
+              body="High-level counts of sessions delivered and clients served in a given reporting period, grouped by program, site, and funding stream."
               bullets={[
-                "Total sessions per month/quarter",
-                "Breakdown by modality of service (individual, couple/family, group)",
-                "Optional filters for site, grant, or program stream"
+                "Total sessions delivered in the period",
+                "Number of clients served (anonymized)",
+                "Breakdowns by program, site, or grant"
               ]}
             />
 
-            <MetricCard
+            <GrantCard
               label="Populations"
-              title="Populations served"
-              body="Rather than names, the system works with characteristics (for example, age range, 2SLGBTQ+ clients, racialized communities, military/veteran families). This creates a picture of who is being reached over time."
+              title="Who is being served"
+              body="Anonymized population tags help demonstrate how MFFS is supporting priority communities, such as 2SLGBTQ+ clients, racialized communities, military/veteran families, and survivors of violence."
               bullets={[
-                "High-level counts by population tags",
-                "Ability to see whether priority groups are being reached",
-                "Supports equity-focused reporting without identifying individuals"
+                "Counts by key population tags",
+                "Intersectional views where appropriate (e.g., 2SLGBTQ+ youth)",
+                "Support for equity-focused grant narratives"
               ]}
             />
 
-            <MetricCard
+            <GrantCard
               label="Modalities"
               title="Ways people receive support"
-              body="Executives can see whether support is being provided in person, by video, or by phone, and how that matches client needs and funder expectations around access and hybrid care."
+              body="Funders often ask how services are delivered. This view summarizes individual, couple, family, and group sessions, as well as in-person, virtual, and phone-based care."
               bullets={[
-                "Counts by service modality (in person, online, phone)",
-                "Trends over time in how people are accessing care",
-                "Helps justify technology, space, and staffing decisions"
+                "Counts by service type (individual, couple, family, group)",
+                "Counts by delivery mode (in-person, virtual, phone)",
+                "Ability to highlight flexible, low-barrier options"
               ]}
             />
 
-            <MetricCard
+            <GrantCard
+              label="Complexity"
+              title="Risk and complexity (anonymized)"
+              body="Without exposing individuals, MFFS can communicate the level of complexity and risk it is holding—for example, proportion of clients presenting with trauma, suicidality, or high psychosocial stressors."
+              bullets={[
+                "Aggregate indicators of complexity and risk",
+                "Shows intensity of work for narrative sections",
+                "Supports arguments for supervision and PD funding"
+              ]}
+            />
+
+            <GrantCard
               label="Supervision & PD"
-              title="Supervision and training as impact"
-              body="Supervision hours and PD completion are also part of the impact story: they show how much support interns receive, how supervisors are resourced, and how the organization invests in safer, more competent care."
+              title="Investment in safety and quality"
+              body="Grant reports can include structured summaries of supervision hours and professional development offerings, demonstrating how MFFS supports the people doing the work."
               bullets={[
-                "Total supervision hours delivered per intern/supervisor",
-                "Completion rates for required PD events",
-                "Ability to connect supervision and PD investments to client outcomes"
+                "Supervision hours per intern and supervisor in aggregate",
+                "PD sessions offered and attended in the period",
+                "Links between PD themes and client/population needs"
               ]}
             />
 
-            <MetricCard
-              label="Privacy"
-              title="Privacy by design"
-              body="Throughout, the emphasis is on de-identified, aggregate data. Client names and clinical notes stay in clinical systems; the portal focuses on the numbers and characteristics that funders and partners ask for."
+            <GrantCard
+              label="Export"
+              title="Export-ready reporting"
+              body="All of these metrics can be exported in a structured format (for example, CSV or simple tables) and used as the backbone of grant reports, board updates, and partner communications."
               bullets={[
-                "No client names or notes in executive views",
-                "Only counts and non-identifying characteristics are reported",
-                "Supports ethical, trauma-informed data practices"
-              ]}
-            />
-
-            <MetricCard
-              label="Exports"
-              title="Grant-friendly exports"
-              body="When a grant writer or executive needs to complete a report, they can export just the data they need in a simple format, with definitions attached so numbers are easy to interpret and defend."
-              bullets={[
-                "Downloadable summaries per grant period",
-                "Short explanations of how each metric is defined",
-                "Reduces manual spreadsheet work for staff and supervisors"
+                "Configurable exports per grant or reporting period",
+                "Reduces manual spreadsheet building and errors",
+                "Consistent, defensible numbers across all reports"
               ]}
             />
           </div>
@@ -131,7 +130,7 @@ export default function ExecutiveGrantsPage() {
   );
 }
 
-function MetricCard({ label, title, body, bullets }) {
+function GrantCard({ label, title, body, bullets }) {
   return (
     <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
       <p

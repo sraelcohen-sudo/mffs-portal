@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function SupervisorInvoicesPage() {
   return (
@@ -51,6 +52,7 @@ export default function SupervisorInvoicesPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Supervisor" />
               <h1 className="section-title">Invoices & receipts</h1>
               <p className="section-subtitle">
                 A transparent view of supervision hours that are billable, how they

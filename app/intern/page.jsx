@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function InternDashboard() {
   return (
@@ -51,6 +52,7 @@ export default function InternDashboard() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Intern" />
               <h1 className="section-title">Intern overview (preview)</h1>
               <p className="section-subtitle">
                 Prototype view of what interns will see when they log in: onboarding

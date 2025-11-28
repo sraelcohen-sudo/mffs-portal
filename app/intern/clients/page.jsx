@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function InternClientsPage() {
   return (
@@ -51,6 +52,7 @@ export default function InternClientsPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Intern" />
               <h1 className="section-title">Clients & session counts</h1>
               <p className="section-subtitle">
                 A way for interns to understand their workload and impact using

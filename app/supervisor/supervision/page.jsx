@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function SupervisorSupervisionPage() {
   return (
@@ -27,10 +28,12 @@ export default function SupervisorSupervisionPage() {
             <div className="sidebar-link-subtitle">Logs</div>
           </button>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Invoices & receipts</div>
-            <div className="sidebar-link-subtitle">Payment</div>
-          </button>
+          <Link href="/supervisor/invoices">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Invoices & receipts</div>
+              <div className="sidebar-link-subtitle">Payment</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Professional development</div>
@@ -49,6 +52,7 @@ export default function SupervisorSupervisionPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Supervisor" />
               <h1 className="section-title">Supervision sessions</h1>
               <p className="section-subtitle">
                 A structured log of supervision provided to interns, focused on dates,

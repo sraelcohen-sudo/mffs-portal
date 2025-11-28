@@ -1,39 +1,39 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function ExecutivePDPage() {
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
-        {/* Sidebar – PD active */}
+        {/* Sidebar – Professional development active */}
         <aside className="sidebar">
           <p className="sidebar-title">Executive portal</p>
 
           <Link href="/executive">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">High-level</div>
+              <div className="sidebar-link-subtitle">Today</div>
             </button>
           </Link>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">People & roles</div>
-            <div className="sidebar-link-subtitle">Interns, supervisors</div>
-          </button>
-
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Clients & capacity</div>
-            <div className="sidebar-link-subtitle">Waitlist & load</div>
-          </button>
+          <Link href="/executive/capacity">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Clients & capacity</div>
+              <div className="sidebar-link-subtitle">Sites & programs</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link sidebar-link--active" type="button">
             <div className="sidebar-link-title">Professional development</div>
-            <div className="sidebar-link-subtitle">Calendar</div>
+            <div className="sidebar-link-subtitle">Calendar & uptake</div>
           </button>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Grant & reporting</div>
-            <div className="sidebar-link-subtitle">Metrics</div>
-          </button>
+          <Link href="/executive/grants">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Grant & reporting</div>
+              <div className="sidebar-link-subtitle">Impact metrics</div>
+            </button>
+          </Link>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
@@ -43,60 +43,84 @@ export default function ExecutivePDPage() {
           </Link>
         </aside>
 
-        {/* Main PD content */}
+        {/* Main content */}
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
-              <h1 className="section-title">Professional development calendar</h1>
+              <RoleChip role="Executive" />
+              <h1 className="section-title">Professional development</h1>
               <p className="section-subtitle">
-                Curate and track training for interns and supervisors, while keeping
-                an eye on funder priorities and internal needs.
+                A single place to see planned, requested, and completed professional
+                development for interns and supervisors—and how it aligns with MFFS
+                priorities and grant commitments.
               </p>
             </div>
           </header>
 
           <div className="card-grid">
             <PDCard
-              label="Pipeline"
-              title="From idea → approved PD event"
-              body="Training can start as a simple idea: a need identified by the training coordinator, supervision team, or grant requirements. Executives see submissions, can mark which ideas are approved, and decide whether an event is internal-only or open to external registrants."
-              bullets={[
-                "Simple form to propose a new PD topic",
-                "Flags for internally required vs. optional trainings",
-                "Space to capture which grants or funders this supports"
-              ]}
-            />
-
-            <PDCard
               label="Calendar"
-              title="Map events across the year"
-              body="Approved events appear in a calendar view with date, modality (in person, Zoom, asynchronous), and audience (interns, supervisors, staff, or mixed). This makes it easy to check for overload or gaps."
+              title="PD calendar at a glance"
+              body="Executives and training coordinators can see upcoming PD events across the year: live workshops, ongoing groups, external trainings, and on-demand courses."
               bullets={[
-                "At-a-glance monthly and quarterly view",
-                "Filter by audience or modality",
-                "Highlight mandatory sessions for certain roles"
+                "Month-by-month view of PD offerings",
+                "Filters by audience (interns, supervisors, staff)",
+                "Shows modality (online, in-person, hybrid)"
               ]}
             />
 
             <PDCard
-              label="Participation"
-              title="Attendance & completion"
-              body="Instead of complex certificates, the portal can track who registered, who attended live, and who later completed a recording or self-paced module. This can be shared with schools, interns, and funders when needed."
+              label="Alignment"
+              title="Alignment with priorities"
+              body="Each PD offering can be tagged with themes (for example, trauma, sex therapy, 2SLGBTQ+ care, cultural safety, supervision skills) and linked to strategic goals or specific grant requirements."
               bullets={[
-                "Basic attendance logs tied to intern/supervisor accounts",
-                "“Completed” status for recordings and asynchronous content",
-                "Exportable summaries for partner schools or funders"
+                "Tags for topic, population focus, and modality",
+                "Links to strategic priorities and specific grants",
+                "Quick view of which areas are heavily supported vs. under-resourced"
+              ]}
+            />
+
+            <PDCard
+              label="Attendance"
+              title="Attendance & completion"
+              body="Interns and supervisors can be marked as registered and/or completed for each PD event. Executives can then see uptake and reach by role, site, program, or population focus."
+              bullets={[
+                "Attendance across interns, supervisors, and staff",
+                "Completion markers for required trainings",
+                "Identify where follow-up or make-up sessions are needed"
+              ]}
+            />
+
+            <PDCard
+              label="Requests"
+              title="Bottom-up PD requests"
+              body="Interns and supervisors can propose PD topics or flag needs (for example, more sex therapy content, specific trauma topics, or military family-focused work), giving executives a clearer view of ground-level needs."
+              bullets={[
+                "Request queue for new PD ideas",
+                "Tags on requests (topic, urgency, target audience)",
+                "Helps prioritize offerings that meet real front-line needs"
               ]}
             />
 
             <PDCard
               label="Impact"
-              title="Align PD to grants & community needs"
-              body="Executives and the grant writer see which PD themes are being covered (e.g., trauma, sex therapy, 2SLGBTQ+ care, military families) and how they map onto funding priorities and equity commitments."
+              title="PD as quality & safety"
+              body="PD isn’t just hours in a spreadsheet; it’s an investment in safety and quality. This screen makes it easier to link PD efforts to supervision, client complexity, and areas where the organization is stretching."
               bullets={[
-                "Tag events with themes and populations",
-                "Connect PD topics to strategic or grant goals",
-                "High-level view of where training is concentrated"
+                "Cross-reference PD themes with client/population trends",
+                "Demonstrate how PD supports safe, ethical practice",
+                "Provide narrative material for quality improvement work"
+              ]}
+            />
+
+            <PDCard
+              label="For grants"
+              title="Training data for funders"
+              body="Funders often ask about how organizations support the people doing the work. With structured PD data, executives can report on the number of sessions offered, attendance by role, and focus areas without manual tracking."
+              bullets={[
+                "Counts of PD sessions and participants per period",
+                "Breakdown by role, site, and topic",
+                "Evidence of ongoing investment in training and supervision"
               ]}
             />
           </div>

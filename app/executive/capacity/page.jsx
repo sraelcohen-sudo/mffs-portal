@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function ExecutiveCapacityPage() {
   return (
@@ -11,31 +12,26 @@ export default function ExecutiveCapacityPage() {
           <Link href="/executive">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">High-level</div>
+              <div className="sidebar-link-subtitle">Today</div>
             </button>
           </Link>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">People & roles</div>
-            <div className="sidebar-link-subtitle">Interns, supervisors</div>
-          </button>
-
           <button className="sidebar-link sidebar-link--active" type="button">
             <div className="sidebar-link-title">Clients & capacity</div>
-            <div className="sidebar-link-subtitle">Waitlist & load</div>
+            <div className="sidebar-link-subtitle">Sites & programs</div>
           </button>
 
           <Link href="/executive/pd">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Professional development</div>
-              <div className="sidebar-link-subtitle">Calendar</div>
+              <div className="sidebar-link-subtitle">Calendar & uptake</div>
             </button>
           </Link>
 
           <Link href="/executive/grants">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Grant & reporting</div>
-              <div className="sidebar-link-subtitle">Metrics</div>
+              <div className="sidebar-link-subtitle">Impact metrics</div>
             </button>
           </Link>
 
@@ -51,79 +47,80 @@ export default function ExecutiveCapacityPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Executive" />
               <h1 className="section-title">Clients & capacity</h1>
               <p className="section-subtitle">
-                A high-level view of how many people MFFS is supporting, how long
-                they are waiting, and where there is room to grow—without exposing
-                any individual client records.
+                A high-level picture of how many people are being served, how many are
+                waiting, and where MFFS has room—or pressure—across programs and sites,
+                all without exposing individual case files.
               </p>
             </div>
           </header>
 
           <div className="card-grid">
             <CapacityCard
-              label="Snapshot"
-              title="Active clients and waitlist"
-              body="Executives see an at-a-glance snapshot: total active clients, people currently on the waitlist, and how these numbers are distributed across sites, programs, and clinician types (interns vs. supervisors)."
+              label="Volumes"
+              title="Active clients & waitlist"
+              body="Executives can see total active clients, how many new intakes are coming in, and the size of the waitlist. Data can be grouped by site, program, and funding stream."
               bullets={[
-                "Total active clients by site/program",
-                "Number of people on the waitlist",
-                "Split of clients seen by interns vs. supervisors"
-              ]}
-            />
-
-            <CapacityCard
-              label="Flow"
-              title="Intake and discharge over time"
-              body="Instead of scrolling through files, leadership can see how many people are entering and leaving the service each month. This helps identify bottlenecks, seasonal patterns, and the impact of new programs."
-              bullets={[
-                "Monthly intakes vs. discharges",
-                "Trends over quarters or grant periods",
-                "Helps anticipate staffing and supervision needs"
+                "Active clients across all locations",
+                "New intakes vs. discharges per period",
+                "Waitlist size and time-to-first-appointment"
               ]}
             />
 
             <CapacityCard
               label="Sites & programs"
-              title="Capacity by location and stream"
-              body="Every site or program stream has limits. This view shows approximate capacity (for example, number of clients per intern or per supervisor) and where the system is currently stretched too thin or has room to expand."
+              title="Where services are happening"
+              body="Capacity can be broken down by physical site, virtual programs, or specific grant-funded initiatives, making it easier to see where demand exceeds current resources."
               bullets={[
-                "Estimated capacity vs. actual load per site",
-                "Flags when a site or stream is over threshold",
-                "Supports decisions about where to add interns or supervisors"
+                "Client and session counts by site/program",
+                "View pressure points across service lines",
+                "Identify where additional staffing or interns are needed"
               ]}
             />
 
             <CapacityCard
-              label="Equity & access"
-              title="Who is waiting the longest?"
-              body="Waitlists are not neutral. The portal can highlight if certain populations (for example, youth, 2SLGBTQ+ folks, racialized communities, or military families) are waiting longer than others, using characteristics rather than names."
+              label="Intensity"
+              title="Session intensity & complexity"
+              body="Beyond simple counts, executives can see patterns in how intensive the work is: average sessions per client, proportion of higher-complexity presentations, and use of specialized services."
               bullets={[
-                "Median wait time overall and by population tags",
-                "Option to see which populations are most affected by delays",
-                "Helps align intake and capacity decisions with equity goals"
+                "Average sessions per client per program",
+                "Tags for complexity or risk (in aggregate only)",
+                "Use of specialized modalities (e.g., sex therapy, trauma, family)"
               ]}
             />
 
             <CapacityCard
-              label="Risk & safety"
-              title="Balancing complexity with capacity"
-              body="Without revealing clinical details, the system can reflect basic indicators of complexity—such as how many clients are flagged as high-risk or needing more intensive support—so leadership can avoid overloading certain clinicians."
+              label="Equity"
+              title="Who is waiting the longest"
+              body="Anonymized demographic and population tags make it possible to see whether any group is waiting longer or receiving fewer sessions, informing equity-focused decisions and grant narratives."
               bullets={[
-                "Non-identifying complexity indicators (e.g., high vs. moderate needs)",
-                "Counts of higher-risk clients per site or clinician type",
-                "Supports safer distribution of workload"
+                "Wait times by key population tags",
+                "Service uptake for priority communities",
+                "Supports equity, diversity, and inclusion goals"
               ]}
             />
 
             <CapacityCard
-              label="Planning"
-              title="Informing strategy and grants"
-              body="Capacity data feeds directly into strategic planning and funding applications: demonstrating unmet need, justifying requests for more supervision hours, and making the case for new positions or program expansions."
+              label="Trends"
+              title="Trends over time"
+              body="Executives see trends across months or years, helping them plan staffing, partnerships, and grant applications based on real patterns, not just impressions."
               bullets={[
-                "Evidence for grant applications about unmet demand",
-                "Data to support hiring or reassigning staff/interns",
-                "Clear story of how additional resources would change capacity"
+                "Multi-period trends in active clients and waitlist size",
+                "Seasonal or cyclical patterns in demand",
+                "Evidence for program expansion or adaptation"
+              ]}
+            />
+
+            <CapacityCard
+              label="For grants"
+              title="Capacity data for funders"
+              body="Because these numbers are structured and anonymized, they can be exported cleanly for funders, boards, and partners to demonstrate reach, pressure, and the impact of additional resources."
+              bullets={[
+                "Export-friendly summary tables and charts",
+                "Aligns with typical funder questions on capacity",
+                "Reduces manual data cleaning and spreadsheet work"
               ]}
             />
           </div>

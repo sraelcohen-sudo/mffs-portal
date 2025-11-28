@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoleChip from "@/app/components/RoleChip";
 
 export default function ExecutiveDashboard() {
   return (
@@ -10,32 +11,27 @@ export default function ExecutiveDashboard() {
 
           <button className="sidebar-link sidebar-link--active" type="button">
             <div className="sidebar-link-title">Overview</div>
-            <div className="sidebar-link-subtitle">High-level</div>
-          </button>
-
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">People & roles</div>
-            <div className="sidebar-link-subtitle">Interns, supervisors</div>
+            <div className="sidebar-link-subtitle">Today</div>
           </button>
 
           <Link href="/executive/capacity">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Clients & capacity</div>
-              <div className="sidebar-link-subtitle">Waitlist & load</div>
+              <div className="sidebar-link-subtitle">Sites & programs</div>
             </button>
           </Link>
 
           <Link href="/executive/pd">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Professional development</div>
-              <div className="sidebar-link-subtitle">Calendar</div>
+              <div className="sidebar-link-subtitle">Calendar & uptake</div>
             </button>
           </Link>
 
           <Link href="/executive/grants">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Grant & reporting</div>
-              <div className="sidebar-link-subtitle">Metrics</div>
+              <div className="sidebar-link-subtitle">Impact metrics</div>
             </button>
           </Link>
 
@@ -51,10 +47,12 @@ export default function ExecutiveDashboard() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
+              <RoleChip role="Executive" />
               <h1 className="section-title">Executive overview (preview)</h1>
               <p className="section-subtitle">
-                Top-level prototype of what senior leadership at MFFS will see:
-                people, programs, client capacity, PD, and grant-aligned metrics.
+                A high-level view of how interns, supervisors, and services fit together:
+                people, capacity, professional development, and grant-ready metrics—without
+                exposing individual client files.
               </p>
             </div>
           </header>
@@ -62,23 +60,23 @@ export default function ExecutiveDashboard() {
           <div className="card-grid">
             <MiniCard
               title="People & roles"
-              subtitle="Create, promote, and retire accounts"
-              body="Executives define roles for interns, supervisors, training coordinators, and grant writers—without exposing sensitive client data—and can change responsibilities as people move through the organization."
+              subtitle="Interns, supervisors, sites"
+              body="See how many interns and supervisors are active, how they are distributed across sites and programs, and where supervision coverage may be thin or robust."
             />
             <MiniCard
               title="Clients & capacity"
-              subtitle="High-level overview, not case files"
-              body="Instead of reading notes, leadership sees aggregate capacity: active clients by site, waitlist pressure, and sessions delivered—while individual records stay with clinicians and case management tools."
+              subtitle="Service load & waitlist"
+              body="High-level counts of active clients, sessions delivered, and waitlist trends across locations—designed for capacity planning, not individual case review."
             />
             <MiniCard
               title="Professional development"
-              subtitle="PD calendar & attendance"
-              body="Executives and training leads can plan a PD calendar, mark which events are internal versus external, track completion rates, and see how PD aligns with funder priorities and community needs."
+              subtitle="Learning & quality"
+              body="Track which PD offerings are planned or completed, who is attending, and how training aligns with MFFS priorities like trauma, sex therapy, and cultural safety."
             />
             <MiniCard
               title="Grant & reporting"
-              subtitle="Metrics that support funding"
-              body="Intern and supervisor activity flows into anonymized dashboards: sessions delivered, populations served, modalities, and PD completed—creating grant-ready evidence of impact without compromising privacy."
+              subtitle="Anonymized impact metrics"
+              body="Aggregate, anonymized data on who is being served, how, and with what intensity—packaged in ways that map directly onto grant reporting requirements."
             />
           </div>
         </section>
