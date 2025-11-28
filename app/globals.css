@@ -1,4 +1,6 @@
-/* app/globals.css */
+/* ------------------------------
+   GLOBAL RESET & BASE
+--------------------------------*/
 
 *,
 *::before,
@@ -13,12 +15,17 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
   background: radial-gradient(circle at top, #0f172a, #020617 55%);
   color: #e5e7eb;
+  min-height: 100vh;
 }
 
-/* Layout containers */
+/* ------------------------------
+   MAIN LAYOUT
+--------------------------------*/
+
 .main-shell {
   min-height: 100vh;
   display: flex;
@@ -40,7 +47,10 @@ body {
   }
 }
 
-/* Card look */
+/* ------------------------------
+   CARDS
+--------------------------------*/
+
 .card {
   border-radius: 1.25rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -50,7 +60,6 @@ body {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
 }
 
-/* Inner card */
 .card-soft {
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.35);
@@ -61,7 +70,10 @@ body {
   );
 }
 
-/* Button - pill style */
+/* ------------------------------
+   PILL BUTTON
+--------------------------------*/
+
 .pill-button {
   border-radius: 999px;
   border: 1px solid rgba(94, 234, 212, 0.5);
@@ -73,7 +85,8 @@ body {
   align-items: center;
   gap: 0.35rem;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.1s ease;
 }
 
 .pill-button:hover {
@@ -82,7 +95,10 @@ body {
   transform: translateY(-1px);
 }
 
-/* Sidebar */
+/* ------------------------------
+   SIDEBAR
+--------------------------------*/
+
 .sidebar {
   border-radius: 1.25rem;
   border: 1px solid rgba(148, 163, 184, 0.25);
@@ -98,19 +114,19 @@ body {
   margin-bottom: 0.9rem;
 }
 
+/* Clean stacked layout */
 .sidebar-link {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.7rem;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.55rem 0.75rem;
   border-radius: 0.7rem;
-  font-size: 0.85rem;
-  color: #e5e7eb;
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   margin-bottom: 0.25rem;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.1s ease;
 }
 
 .sidebar-link:hover {
@@ -119,12 +135,28 @@ body {
   transform: translateY(-1px);
 }
 
+/* Active link state */
 .sidebar-link--active {
   background: radial-gradient(circle at top left, #0f766e, #082f49);
   border-color: rgba(45, 212, 191, 0.9);
 }
 
-/* Sections */
+/* Titles and subtitles */
+.sidebar-link-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.sidebar-link-subtitle {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+/* ------------------------------
+   SECTION HEADERS
+--------------------------------*/
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -144,7 +176,10 @@ body {
   color: #9ca3af;
 }
 
-/* Grid of cards */
+/* ------------------------------
+   GRID OF CARDS
+--------------------------------*/
+
 .card-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -157,7 +192,10 @@ body {
   }
 }
 
-/* Small badges */
+/* ------------------------------
+   BADGES
+--------------------------------*/
+
 .badge {
   display: inline-flex;
   align-items: center;

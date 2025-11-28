@@ -9,34 +9,34 @@ export default function ExecutiveDashboard() {
           <p className="sidebar-title">Executive portal</p>
 
           <button className="sidebar-link sidebar-link--active" type="button">
-            <span>Overview</span>
-            <small>High-level</small>
+            <div className="sidebar-link-title">Overview</div>
+            <div className="sidebar-link-subtitle">High-level</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>People & roles</span>
-            <small>Interns, supervisors</small>
+            <div className="sidebar-link-title">People & roles</div>
+            <div className="sidebar-link-subtitle">Interns, supervisors</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Clients & capacity</span>
-            <small>Waitlist & load</small>
+            <div className="sidebar-link-title">Clients & capacity</div>
+            <div className="sidebar-link-subtitle">Waitlist & load</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Professional development</span>
-            <small>Calendar</small>
+            <div className="sidebar-link-title">Professional development</div>
+            <div className="sidebar-link-subtitle">Calendar</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Grant & reporting</span>
-            <small>Metrics</small>
+            <div className="sidebar-link-title">Grant & reporting</div>
+            <div className="sidebar-link-subtitle">Metrics</div>
           </button>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
-              <span>Back to login</span>
-              <small>Switch role</small>
+              <div className="sidebar-link-title">Back to login</div>
+              <div className="sidebar-link-subtitle">Switch role</div>
             </button>
           </Link>
         </aside>

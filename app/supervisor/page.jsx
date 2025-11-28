@@ -9,34 +9,34 @@ export default function SupervisorDashboard() {
           <p className="sidebar-title">Supervisor portal</p>
 
           <button className="sidebar-link sidebar-link--active" type="button">
-            <span>Overview</span>
-            <small>Today</small>
+            <div className="sidebar-link-title">Overview</div>
+            <div className="sidebar-link-subtitle">Today</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Assigned interns</span>
-            <small>Caseload</small>
+            <div className="sidebar-link-title">Assigned interns</div>
+            <div className="sidebar-link-subtitle">Caseload</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Supervision sessions</span>
-            <small>Logs</small>
+            <div className="sidebar-link-title">Supervision sessions</div>
+            <div className="sidebar-link-subtitle">Logs</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Invoices & receipts</span>
-            <small>Payment</small>
+            <div className="sidebar-link-title">Invoices & receipts</div>
+            <div className="sidebar-link-subtitle">Payment</div>
           </button>
 
           <button className="sidebar-link" type="button">
-            <span>Professional development</span>
-            <small>MFFS-only</small>
+            <div className="sidebar-link-title">Professional development</div>
+            <div className="sidebar-link-subtitle">MFFS-only</div>
           </button>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
-              <span>Back to login</span>
-              <small>Switch role</small>
+              <div className="sidebar-link-title">Back to login</div>
+              <div className="sidebar-link-subtitle">Switch role</div>
             </button>
           </Link>
         </aside>
