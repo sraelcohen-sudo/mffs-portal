@@ -13,10 +13,12 @@ export default function InternDashboard() {
             <div className="sidebar-link-subtitle">Today</div>
           </button>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Onboarding & documents</div>
-            <div className="sidebar-link-subtitle">Step 1–3</div>
-          </button>
+          <Link href="/intern/onboarding">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Onboarding & documents</div>
+              <div className="sidebar-link-subtitle">Step 1–3</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Supervision & hours</div>
