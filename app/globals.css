@@ -205,3 +205,62 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.6);
   color: #cbd5f5;
 }
+
+/* ====== Shared button styles ====== */
+
+/* Soft pill button for actions in cards, 404, etc. */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: radial-gradient(
+    circle at top left,
+    rgba(148, 163, 184, 0.12),
+    rgba(15, 23, 42, 1)
+  );
+  font-size: 0.78rem;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition:
+    background 140ms ease-out,
+    border-color 140ms ease-out,
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.btn-ghost:hover {
+  border-color: rgba(148, 163, 184, 0.9);
+  background: radial-gradient(
+    circle at top left,
+    rgba(148, 163, 184, 0.24),
+    rgba(15, 23, 42, 1)
+  );
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.7);
+}
+
+.btn-ghost:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.8);
+}
+
+/* Optional: subtle hover for sidebar links so the app feels more alive */
+.sidebar-link {
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out,
+    transform 80ms ease-out;
+}
+
+.sidebar-link:hover {
+  background: radial-gradient(
+    circle at top left,
+    rgba(148, 163, 184, 0.08),
+    rgba(15, 23, 42, 1)
+  );
+  transform: translateX(1px);
+}
