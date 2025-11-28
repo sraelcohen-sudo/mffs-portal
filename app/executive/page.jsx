@@ -23,10 +23,12 @@ export default function ExecutiveDashboard() {
             <div className="sidebar-link-subtitle">Waitlist & load</div>
           </button>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Professional development</div>
-            <div className="sidebar-link-subtitle">Calendar</div>
-          </button>
+          <Link href="/executive/pd">
+            <button className="sidebar-link" type="button">
+              <div className="sidebar-link-title">Professional development</div>
+              <div className="sidebar-link-subtitle">Calendar</div>
+            </button>
+          </Link>
 
           <button className="sidebar-link" type="button">
             <div className="sidebar-link-title">Grant & reporting</div>
