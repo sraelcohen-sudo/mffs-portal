@@ -1,7 +1,33 @@
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
+import { createSupabaseClient } from "@/lib/supabaseClient";
 
-export default function ExecutivePDPage() {
+export default async function ExecutivePDPage() {
+  const supabase = createSupabaseClient();
+
+  let events = [];
+  let loadError = null;
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("professional_development_events")
+      .select(
+        "id, title, description, starts_at, location, admission_type, capacity, registration_slug"
+      )
+      .order("starts_at", { ascending: true })
+      .limit(12);
+
+    if (error) {
+      console.error("Error loading PD events:", error);
+      loadError = "Could not load events from Supabase.";
+    } else {
+      events = data || [];
+    }
+  } else {
+    loadError =
+      "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
+  }
+
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
@@ -57,6 +83,103 @@ export default function ExecutivePDPage() {
             </div>
           </header>
 
+          {/* LIVE DATA STRIP */}
+          <section
+            style={{
+              marginBottom: "1.4rem",
+              padding: "0.9rem 1rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.4)",
+              background:
+                "radial-gradient(circle at top left, rgba(148,163,184,0.16), rgba(15,23,42,1))",
+              display: "grid",
+              gap: "0.7rem"
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "0.75rem",
+                alignItems: "baseline",
+                flexWrap: "wrap"
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#e5e7eb",
+                    marginBottom: "0.25rem"
+                  }}
+                >
+                  Live example · Professional development events
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "#cbd5f5",
+                    maxWidth: "32rem"
+                  }}
+                >
+                  These rows are loaded directly from the{" "}
+                  <code
+                    style={{
+                      fontSize: "0.72rem",
+                      backgroundColor: "rgba(15,23,42,0.9)",
+                      padding: "0.08rem 0.3rem",
+                      borderRadius: "0.35rem",
+                      border: "1px solid rgba(30,64,175,0.8)"
+                    }}
+                  >
+                    professional_development_events
+                  </code>{" "}
+                  table in Supabase. In a live build, this is what training
+                  coordinators and executives would actually manage.
+                </p>
+              </div>
+            </div>
+
+            {loadError && (
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#fecaca"
+                }}
+              >
+                {loadError}
+              </p>
+            )}
+
+            {!loadError && events.length === 0 && (
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#e5e7eb"
+                }}
+              >
+                There are no professional development events in the database yet. Once
+                an event is added in Supabase, it will appear here automatically.
+              </p>
+            )}
+
+            {!loadError && events.length > 0 && (
+              <div
+                style={{
+                  display: "grid",
+                  gap: "0.55rem"
+                }}
+              >
+                {events.map((event) => (
+                  <EventRow key={event.id} event={event} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* DESCRIPTIVE CARDS BELOW (STATIC DESIGN) */}
           <div className="card-grid">
             <PDCard
               label="Calendar"
@@ -127,6 +250,97 @@ export default function ExecutivePDPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function EventRow({ event }) {
+  const dateText = event.starts_at
+    ? new Date(event.starts_at).toLocaleString("en-CA", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      })
+    : "Date TBA";
+
+  const admissionLabel =
+    event.admission_type === "first_come"
+      ? "First come, first served"
+      : event.admission_type === "controlled"
+      ? "Controlled / by approval"
+      : "Admission type TBA";
+
+  return (
+    <div
+      className="card-soft"
+      style={{
+        padding: "0.6rem 0.75rem",
+        display: "grid",
+        gap: "0.15rem"
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "0.5rem",
+          flexWrap: "wrap"
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.86rem",
+            fontWeight: 500,
+            color: "#f9fafb"
+          }}
+        >
+          {event.title || "Untitled event"}
+        </p>
+        {event.capacity !== null && (
+          <p
+            style={{
+              fontSize: "0.74rem",
+              color: "#a5b4fc",
+              whiteSpace: "nowrap"
+            }}
+          >
+            Capacity: {event.capacity}
+          </p>
+        )}
+      </div>
+
+      <p
+        style={{
+          fontSize: "0.76rem",
+          color: "#cbd5f5"
+        }}
+      >
+        {dateText}
+        {event.location ? ` · ${event.location}` : ""}
+        {event.registration_slug
+          ? ` · Registration code: ${event.registration_slug}`
+          : ""}
+      </p>
+
+      <p
+        style={{
+          fontSize: "0.74rem",
+          color: "#9ca3af"
+        }}
+      >
+        {admissionLabel}
+      </p>
+
+      {event.description && (
+        <p
+          style={{
+            fontSize: "0.75rem",
+            color: "#9ca3af",
+            marginTop: "0.15rem"
+          }}
+        >
+          {event.description}
+        </p>
+      )}
+    </div>
   );
 }
 
