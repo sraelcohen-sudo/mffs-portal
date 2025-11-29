@@ -9,17 +9,36 @@ export default async function ExecutivePDPage() {
   let loadError = null;
 
   if (supabase) {
-    // 🔧 Safer: select all columns instead of a fixed list
-    const { data, error } = await supabase
-      .from("professional_development_events")
-      .select("*")
-      .order("date_start", { ascending: true });
+    try {
+      // Safer: select everything, no ORDER in SQL (we'll sort in JS)
+      const { data, error } = await supabase
+        .from("professional_development_events")
+        .select("*");
 
-    if (error) {
-      console.error("Error loading PD events for executive view:", error);
+      if (error) {
+        console.error("Error loading PD events for executive view:", error);
+
+        const msg = (error.message || "").toLowerCase();
+
+        // If the table or columns don't exist yet in this fresh Supabase project,
+        // treat it as "no events yet" instead of showing an error.
+        const isMissingTable =
+          error.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
+
+        if (isMissingTable) {
+          events = [];
+          loadError = null; // swallow this for a clean UI
+        } else {
+          loadError = "Could not load professional development events from Supabase.";
+        }
+      } else {
+        events = Array.isArray(data) ? data : [];
+      }
+    } catch (e) {
+      console.error("Unexpected error loading PD events:", e);
       loadError = "Could not load professional development events from Supabase.";
-    } else {
-      events = data || [];
     }
   } else {
     loadError =
@@ -29,25 +48,44 @@ export default async function ExecutivePDPage() {
   // ----- Derived metrics -----
   const now = new Date();
 
-  const publishedEvents = events.filter((e) => e.is_published);
-  const draftEvents = events.filter((e) => !e.is_published);
+  const publishedEvents = events.filter((e) => e.is_published === true);
+  const draftEvents = events.filter(
+    (e) => e.is_published === false || typeof e.is_published === "undefined"
+  );
 
-  const upcomingEvents = publishedEvents.filter((e) => {
-    if (!e.date_start) return false;
-    const d = new Date(e.date_start);
-    if (Number.isNaN(d.getTime())) return false;
-    return d.getTime() >= now.getTime();
-  });
+  // Sort by date_start in JS (if present)
+  const sortByDate = (arr) =>
+    [...arr].sort((a, b) => {
+      const da = a.date_start ? new Date(a.date_start).getTime() : 0;
+      const db = b.date_start ? new Date(b.date_start).getTime() : 0;
+      return da - db;
+    });
 
-  const pastEvents = publishedEvents.filter((e) => {
-    if (!e.date_start) return false;
-    const d = new Date(e.date_start);
-    if (Number.isNaN(d.getTime())) return false;
-    return d.getTime() < now.getTime();
-  });
+  const upcomingEvents = sortByDate(
+    publishedEvents.filter((e) => {
+      if (!e.date_start) return false;
+      const d = new Date(e.date_start);
+      if (Number.isNaN(d.getTime())) return false;
+      return d.getTime() >= now.getTime();
+    })
+  );
+
+  const pastEvents = sortByDate(
+    publishedEvents.filter((e) => {
+      if (!e.date_start) return false;
+      const d = new Date(e.date_start);
+      if (Number.isNaN(d.getTime())) return false;
+      return d.getTime() < now.getTime();
+    })
+  );
 
   const totalCapacity = publishedEvents.reduce((sum, e) => {
-    const cap = typeof e.capacity === "number" ? e.capacity : 0;
+    const cap =
+      typeof e.capacity === "number"
+        ? e.capacity
+        : Number.isFinite(Number(e.capacity))
+        ? Number(e.capacity)
+        : 0;
     return sum + cap;
   }, 0);
 
@@ -119,9 +157,8 @@ export default async function ExecutivePDPage() {
                 >
                   professional_development_events
                 </code>{" "}
-                table in Supabase. In a live system, executives and the training
-                coordinator would be able to create, update, and archive events from
-                this screen.
+                table in Supabase. If that table does not exist yet in this project,
+                this screen will simply show that there are no events configured.
               </p>
             </div>
           </header>
@@ -183,7 +220,7 @@ export default async function ExecutivePDPage() {
             </div>
           </section>
 
-          {/* ERROR STATE */}
+          {/* ERROR STATE – only show if Supabase itself is misconfigured */}
           {loadError && (
             <section
               style={{
@@ -454,6 +491,7 @@ function EventCard({ event, isDraft = false }) {
     : "Date to be announced";
 
   const modeLabel = event.is_online ? "Online" : "In-person";
+
   const locationLabel =
     event.is_online && !event.location
       ? "Online (link to be shared)"
@@ -468,9 +506,13 @@ function EventCard({ event, isDraft = false }) {
       : "Admission rules TBA";
 
   const cap =
-    typeof event.capacity === "number" && event.capacity > 0
-      ? `${event.capacity} seats`
-      : "Capacity TBA";
+    typeof event.capacity === "number"
+      ? event.capacity
+      : Number.isFinite(Number(event.capacity))
+      ? Number(event.capacity)
+      : null;
+
+  const capacityLabel = cap && cap > 0 ? `${cap} seats` : "Capacity TBA";
 
   return (
     <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
@@ -549,7 +591,7 @@ function EventCard({ event, isDraft = false }) {
           marginBottom: "0.2rem"
         }}
       >
-        <strong>Capacity:</strong> {cap}
+        <strong>Capacity:</strong> {capacityLabel}
       </p>
 
       {event.registration_slug && (
