@@ -1,6 +1,7 @@
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
+import CreateEventPanel from "./CreateEventPanel";
 
 export default async function ExecutivePDPage() {
   const supabase = createSupabaseClient();
@@ -220,10 +221,13 @@ export default async function ExecutivePDPage() {
             </div>
           </header>
 
+          {/* NEW: Create event panel (client component) */}
+          <CreateEventPanel />
+
           {/* TOP SUMMARY TILE */}
           <section
             style={{
-              marginTop: "0.6rem",
+              marginTop: "0.3rem",
               marginBottom: "1.0rem",
               padding: "0.7rem 0.9rem",
               borderRadius: "0.9rem",
@@ -693,7 +697,6 @@ function EventCard({ event, interestCount = 0, isPast = false }) {
         <strong>Interest:</strong> {interestLabel}
       </p>
 
-      {/* NEW: Link to interest detail page */}
       <Link href={`/executive/pd/${event.id}`}>
         <button
           type="button"
