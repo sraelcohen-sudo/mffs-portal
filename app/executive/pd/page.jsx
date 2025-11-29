@@ -8,9 +8,15 @@ export default async function ExecutivePDPage() {
   let events = [];
   let loadError = null;
 
+  // For interest signals
+  let interestRows = [];
+  let interestLoadError = null;
+
   if (supabase) {
+    // ───────────────────────────
+    // 1) Load PD events
+    // ───────────────────────────
     try {
-      // Select everything; we’ll adapt in JS
       const { data, error } = await supabase
         .from("professional_development_events")
         .select("*");
@@ -20,7 +26,6 @@ export default async function ExecutivePDPage() {
 
         const msg = (error.message || "").toLowerCase();
 
-        // If the table doesn’t exist yet, treat as “no events” without error UI
         const isMissingTable =
           error.code === "42P01" ||
           msg.includes("does not exist") ||
@@ -39,20 +44,52 @@ export default async function ExecutivePDPage() {
       console.error("Unexpected error loading PD events:", e);
       loadError = "Could not load professional development events from Supabase.";
     }
+
+    // ───────────────────────────
+    // 2) Load PD interest (simple: fetch all rows and count in JS)
+    // ───────────────────────────
+    try {
+      const { data: interestData, error: interestErrorRaw } = await supabase
+        .from("pd_interest")
+        .select("event_id");
+
+      if (interestErrorRaw) {
+        console.error("Error loading PD interest:", interestErrorRaw);
+
+        const msg = (interestErrorRaw.message || "").toLowerCase();
+        const isMissingTable =
+          interestErrorRaw.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
+
+        if (isMissingTable) {
+          // If pd_interest doesn’t exist yet, just treat as no interest data.
+          interestRows = [];
+          interestLoadError = null;
+        } else {
+          interestRows = [];
+          interestLoadError = "Could not load PD interest signals from Supabase.";
+        }
+      } else {
+        interestRows = Array.isArray(interestData) ? interestData : [];
+      }
+    } catch (e) {
+      console.error("Unexpected error loading PD interest:", e);
+      interestRows = [];
+      interestLoadError = "Could not load PD interest signals from Supabase.";
+    }
   } else {
     loadError =
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
   }
 
-  // ----- Derived metrics -----
+  // --------- Derived metrics ----------
   const now = new Date();
 
-  // In this schema, there is no is_published column.
-  // For the prototype, we treat ALL rows as "published".
+  // In this schema, we treat all events as "live" offerings.
   const publishedEvents = events;
   const draftEvents = []; // none for now in this simplified schema
 
-  // Utility: sort by starts_at in JS
   const sortByStartsAt = (arr) =>
     [...arr].sort((a, b) => {
       const da = a.starts_at ? new Date(a.starts_at).getTime() : 0;
@@ -87,6 +124,16 @@ export default async function ExecutivePDPage() {
         : 0;
     return sum + cap;
   }, 0);
+
+  // Interest counts: event_id → count
+  const interestByEventId = interestRows.reduce((acc, row) => {
+    if (!row?.event_id) return acc;
+    const current = acc[row.event_id] || 0;
+    acc[row.event_id] = current + 1;
+    return acc;
+  }, {});
+
+  const totalInterestSignals = interestRows.length;
 
   return (
     <main className="main-shell">
@@ -134,8 +181,8 @@ export default async function ExecutivePDPage() {
               <h1 className="section-title">Professional development & events</h1>
               <p className="section-subtitle">
                 A high-level view of professional development offerings for interns and
-                supervisors — what&apos;s planned, when it happens, and how capacity is
-                distributed.
+                supervisors — what&apos;s planned, when it happens, and how capacity and
+                interest are distributed.
               </p>
               <p
                 style={{
@@ -156,8 +203,20 @@ export default async function ExecutivePDPage() {
                 >
                   professional_development_events
                 </code>{" "}
-                table in Supabase. In this simplified schema, all rows are treated as
-                published professional development offerings.
+                and{" "}
+                <code
+                  style={{
+                    fontSize: "0.72rem",
+                    backgroundColor: "rgba(15,23,42,0.9)",
+                    padding: "0.08rem 0.3rem",
+                    borderRadius: "0.35rem",
+                    border: "1px solid rgba(30,64,175,0.8)"
+                  }}
+                >
+                  pd_interest
+                </code>{" "}
+                tables in Supabase. Each interest record represents one &quot;I would
+                like a spot&quot; click from the intern view.
               </p>
             </div>
           </header>
@@ -202,12 +261,12 @@ export default async function ExecutivePDPage() {
               <SummaryPill
                 label="Upcoming events"
                 value={`${upcomingEvents.length}`}
-                hint="Events with a future start date"
+                hint="Future-dated sessions"
               />
               <SummaryPill
                 label="Past events"
                 value={`${pastEvents.length}`}
-                hint="Events with a past start date"
+                hint="Already delivered"
               />
               <SummaryPill
                 label="Combined capacity"
@@ -216,10 +275,27 @@ export default async function ExecutivePDPage() {
                 }
                 hint="Based on the capacity field on each event"
               />
+              <SummaryPill
+                label="Total interest signals"
+                value={`${totalInterestSignals}`}
+                hint="Count of “request a spot” clicks (prototype)"
+              />
             </div>
+
+            {interestLoadError && (
+              <p
+                style={{
+                  marginTop: "0.25rem",
+                  fontSize: "0.72rem",
+                  color: "#fca5a5"
+                }}
+              >
+                {interestLoadError}
+              </p>
+            )}
           </section>
 
-          {/* ERROR STATE – only if Supabase configuration is broken */}
+          {/* ERROR STATE – only if Supabase config is broken */}
           {loadError && (
             <section
               style={{
@@ -273,7 +349,7 @@ export default async function ExecutivePDPage() {
                   maxWidth: "34rem"
                 }}
               >
-                These events have a future{" "}
+                These sessions have a future{" "}
                 <code
                   style={{
                     fontSize: "0.72rem",
@@ -285,8 +361,8 @@ export default async function ExecutivePDPage() {
                 >
                   starts_at
                 </code>{" "}
-                date. In a live system, interns could request a spot or register
-                directly through their portal.
+                date. Interest counts come from the intern-facing &quot;Request a
+                spot&quot; button and give a lightweight sense of demand.
               </p>
             </div>
 
@@ -310,7 +386,11 @@ export default async function ExecutivePDPage() {
                 }}
               >
                 {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    interestCount={interestByEventId[event.id] || 0}
+                  />
                 ))}
               </div>
             )}
@@ -347,9 +427,9 @@ export default async function ExecutivePDPage() {
                   maxWidth: "36rem"
                 }}
               >
-                Delivered professional development that has already taken place. In
-                future iterations, this could link to recordings, materials, and
-                attendance data to support reporting and continuous improvement.
+                Delivered professional development. Over time, this view could connect
+                to recordings, materials, and attendance to support reporting and
+                quality improvement.
               </p>
             </div>
 
@@ -372,13 +452,18 @@ export default async function ExecutivePDPage() {
                 }}
               >
                 {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    interestCount={interestByEventId[event.id] || 0}
+                    isPast
+                  />
                 ))}
               </div>
             )}
           </section>
 
-          {/* DRAFT EVENTS (none in this schema, but we keep the section as a design affordance) */}
+          {/* DRAFT EVENTS (placeholder for future schema) */}
           <section
             style={{
               padding: "0.9rem 1rem",
@@ -408,7 +493,7 @@ export default async function ExecutivePDPage() {
                   maxWidth: "36rem"
                 }}
               >
-                In a future version, events could have a dedicated{" "}
+                In a future version, events could include a dedicated{" "}
                 <code
                   style={{
                     fontSize: "0.72rem",
@@ -420,7 +505,8 @@ export default async function ExecutivePDPage() {
                 >
                   is_published
                 </code>{" "}
-                flag. For now, all rows in the PD table are treated as live offerings.
+                flag and richer metadata (e.g., facilitator, target cohort). For now,
+                all rows in the PD table are treated as live offerings.
               </p>
             </div>
 
@@ -433,19 +519,6 @@ export default async function ExecutivePDPage() {
               >
                 There are no draft events in this prototype schema.
               </p>
-            )}
-
-            {draftEvents.length > 0 && (
-              <div
-                className="card-grid"
-                style={{
-                  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))"
-                }}
-              >
-                {draftEvents.map((event) => (
-                  <EventCard key={event.id} event={event} isDraft />
-                ))}
-              </div>
             )}
           </section>
         </section>
@@ -502,7 +575,7 @@ function SummaryPill({ label, value, hint }) {
   );
 }
 
-function EventCard({ event, isDraft = false }) {
+function EventCard({ event, interestCount = 0, isPast = false }) {
   const dateText = event.starts_at
     ? new Date(event.starts_at).toLocaleString("en-CA", {
         dateStyle: "medium",
@@ -529,6 +602,13 @@ function EventCard({ event, isDraft = false }) {
 
   const capacityLabel = cap && cap > 0 ? `${cap} seats` : "Capacity TBA";
 
+  const interestLabel =
+    interestCount === 0
+      ? "No interest recorded yet"
+      : interestCount === 1
+      ? "1 interest signal (demo)"
+      : `${interestCount} interest signals (demo)`;
+
   return (
     <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
       <p
@@ -536,11 +616,11 @@ function EventCard({ event, isDraft = false }) {
           fontSize: "0.7rem",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: isDraft ? "#fde68a" : "#9ca3af",
+          color: isPast ? "#9ca3af" : "#9ca3af",
           marginBottom: "0.25rem"
         }}
       >
-        {isDraft ? "Draft event" : "PD event"}
+        {isPast ? "Past event" : "PD event"}
       </p>
       <h2
         style={{
@@ -603,28 +683,15 @@ function EventCard({ event, isDraft = false }) {
         <strong>Capacity:</strong> {capacityLabel}
       </p>
 
-      {event.registration_slug && (
-        <p
-          style={{
-            fontSize: "0.72rem",
-            color: "#6b7280",
-            marginTop: "0.25rem"
-          }}
-        >
-          Registration handle:{" "}
-          <code
-            style={{
-              fontSize: "0.7rem",
-              backgroundColor: "rgba(15,23,42,0.9)",
-              padding: "0.06rem 0.25rem",
-              borderRadius: "0.35rem",
-              border: "1px solid rgba(30,64,175,0.8)"
-            }}
-          >
-            {event.registration_slug}
-          </code>
-        </p>
-      )}
+      <p
+        style={{
+          fontSize: "0.74rem",
+          color: "#a5b4fc",
+          marginTop: "0.1rem"
+        }}
+      >
+        <strong>Interest:</strong> {interestLabel}
+      </p>
     </div>
   );
 }
