@@ -65,12 +65,12 @@ export default async function ExecutivePDDetailPage({ params }) {
     }
 
     // ───────────────────────────
-    // 2) Load interest rows for this event
+    // 2) Load interest rows for this event (with intern_name)
     // ───────────────────────────
     try {
       const { data: interestData, error: interestRawError } = await supabase
         .from("pd_interest")
-        .select("id, event_id, created_at")
+        .select("id, event_id, created_at, intern_name")
         .eq("event_id", id)
         .order("created_at", { ascending: false });
 
@@ -363,8 +363,9 @@ export default async function ExecutivePDDetailPage({ params }) {
                     }}
                   >
                     Each row below represents one click on the intern-facing
-                    &quot;Request a spot&quot; button. In a live system this could be
-                    tied to specific intern accounts, cohorts, or schools.
+                    &quot;Request a spot&quot; button. For this prototype, the
+                    intern&apos;s name is typed on the PD page instead of coming from a
+                    login.
                   </p>
                 </div>
 
@@ -420,6 +421,16 @@ export default async function ExecutivePDDetailPage({ params }) {
                               fontWeight: 500
                             }}
                           >
+                            Intern name (prototype)
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "0.55rem 0.75rem",
+                              color: "#9ca3af",
+                              fontWeight: 500
+                            }}
+                          >
                             Interest id
                           </th>
                           <th
@@ -443,6 +454,11 @@ export default async function ExecutivePDDetailPage({ params }) {
                               })
                             : "Unknown";
 
+                          const displayName =
+                            row.intern_name && row.intern_name.trim().length > 0
+                              ? row.intern_name
+                              : "Name not recorded";
+
                           return (
                             <tr
                               key={row.id}
@@ -454,8 +470,17 @@ export default async function ExecutivePDDetailPage({ params }) {
                               <td
                                 style={{
                                   padding: "0.5rem 0.75rem",
+                                  color: "#e5e7eb"
+                                }}
+                              >
+                                {displayName}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.5rem 0.75rem",
                                   color: "#e5e7eb",
-                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace",
+                                  fontFamily:
+                                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace",
                                   fontSize: "0.74rem"
                                 }}
                               >
@@ -492,10 +517,9 @@ export default async function ExecutivePDDetailPage({ params }) {
                   maxWidth: "42rem"
                 }}
               >
-                In a future phase, this screen could include named interns, school
-                affiliations, and prioritisation rules, allowing the training coordinator
-                to convert interest into confirmed registrations in a transparent and
-                equitable way.
+                In a future phase, this screen would show named interns based on real
+                logins (not typed names), plus school/cohort info, to help the training
+                coordinator allocate limited spots in a transparent way.
               </section>
             </>
           )}

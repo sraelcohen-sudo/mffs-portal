@@ -12,6 +12,8 @@ export default function InternPDPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState(null);
   const [submittedIds, setSubmittedIds] = useState(new Set());
+  const [internName, setInternName] = useState("");
+  const [nameHint, setNameHint] = useState("");
 
   // ───────────────────────────
   // Load events from Supabase (client side)
@@ -69,11 +71,20 @@ export default function InternPDPage() {
     if (!supabase || !eventId) return;
     if (submittingId === eventId) return; // debounce
 
+    // Gentle nudge to include a name
+    if (!internName.trim()) {
+      setNameHint("For this prototype, please add your name above so the executive view can see who requested a spot.");
+      return;
+    } else {
+      setNameHint("");
+    }
+
     setSubmittingId(eventId);
 
     try {
       const { error } = await supabase.from("pd_interest").insert({
-        event_id: eventId
+        event_id: eventId,
+        intern_name: internName.trim()
       });
 
       if (error) {
@@ -186,10 +197,61 @@ export default function InternPDPage() {
             </div>
           </header>
 
+          {/* INTERN NAME INPUT (prototype) */}
+          <section
+            style={{
+              marginTop: "0.7rem",
+              marginBottom: "0.8rem",
+              padding: "0.7rem 0.9rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.6)",
+              backgroundColor: "rgba(15,23,42,1)",
+              display: "grid",
+              gap: "0.4rem",
+              maxWidth: "28rem"
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.74rem",
+                color: "#e5e7eb",
+                lineHeight: 1.4
+              }}
+            >
+              <strong>Intern name (prototype):</strong> enter your name so the
+              executive view can see who has requested a spot for each PD event. In a
+              live system this would be pulled from your login, not typed manually.
+            </p>
+            <input
+              type="text"
+              value={internName}
+              onChange={(e) => setInternName(e.target.value)}
+              placeholder="e.g., Jordan Smith"
+              style={{
+                fontSize: "0.8rem",
+                padding: "0.4rem 0.6rem",
+                borderRadius: "0.55rem",
+                border: "1px solid rgba(75,85,99,0.9)",
+                backgroundColor: "rgba(15,23,42,1)",
+                color: "#f9fafb",
+                outline: "none"
+              }}
+            />
+            {nameHint && (
+              <p
+                style={{
+                  fontSize: "0.74rem",
+                  color: "#fecaca"
+                }}
+              >
+                {nameHint}
+              </p>
+            )}
+          </section>
+
           {/* SUMMARY TILE */}
           <section
             style={{
-              marginTop: "0.6rem",
               marginBottom: "1.0rem",
               padding: "0.7rem 0.9rem",
               borderRadius: "0.9rem",
