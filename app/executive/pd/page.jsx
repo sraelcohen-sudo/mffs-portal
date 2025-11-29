@@ -86,9 +86,8 @@ export default async function ExecutivePDPage() {
   // --------- Derived metrics ----------
   const now = new Date();
 
-  // In this schema, we treat all events as "live" offerings.
   const publishedEvents = events;
-  const draftEvents = []; // none for now in this simplified schema
+  const draftEvents = []; // none in this simplified schema
 
   const sortByStartsAt = (arr) =>
     [...arr].sort((a, b) => {
@@ -215,8 +214,8 @@ export default async function ExecutivePDPage() {
                 >
                   pd_interest
                 </code>{" "}
-                tables in Supabase. Each interest record represents one &quot;I would
-                like a spot&quot; click from the intern view.
+                tables in Supabase. Each interest record represents one
+                &quot;Request a spot&quot; click from the intern view.
               </p>
             </div>
           </header>
@@ -687,11 +686,30 @@ function EventCard({ event, interestCount = 0, isPast = false }) {
         style={{
           fontSize: "0.74rem",
           color: "#a5b4fc",
-          marginTop: "0.1rem"
+          marginTop: "0.1rem",
+          marginBottom: "0.4rem"
         }}
       >
         <strong>Interest:</strong> {interestLabel}
       </p>
+
+      {/* NEW: Link to interest detail page */}
+      <Link href={`/executive/pd/${event.id}`}>
+        <button
+          type="button"
+          style={{
+            fontSize: "0.74rem",
+            padding: "0.32rem 0.7rem",
+            borderRadius: "999px",
+            border: "1px solid rgba(129,140,248,0.9)",
+            backgroundColor: "rgba(15,23,42,0.95)",
+            color: "#e5e7eb",
+            cursor: "pointer"
+          }}
+        >
+          View interest details
+        </button>
+      </Link>
     </div>
   );
 }
