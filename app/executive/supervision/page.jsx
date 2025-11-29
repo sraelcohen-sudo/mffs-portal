@@ -5,116 +5,115 @@ import { createSupabaseClient } from "@/lib/supabaseClient";
 export default async function ExecutiveSupervisionPage() {
   const supabase = createSupabaseClient();
 
-  let sessions = [];
+  let interns = [];
+  let sessionsAgg = [];
   let loadError = null;
 
-  if (supabase) {
-    const { data, error } = await supabase
-      .from("supervision_sessions")
-      .select(
-        `
-        id,
-        occurred_at,
-        duration_minutes,
-        format,
-        status,
-        focus,
-        intern_profiles (
-          id,
-          full_name,
-          pronouns
-        )
-      `
-      )
-      .order("occurred_at", { ascending: false })
-      .limit(250);
-
-    if (error) {
-      console.error("Error loading supervision sessions for executive view:", error);
-      loadError = "Could not load supervision sessions from Supabase.";
-    } else {
-      sessions = data || [];
-    }
-  } else {
+  if (!supabase) {
     loadError =
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
-  }
+  } else {
+    // ───────────────────────────
+    // 1) Load interns
+    // ───────────────────────────
+    try {
+      const { data, error } = await supabase
+        .from("intern_profiles")
+        .select("id, full_name, email");
 
-  // Helper
-  const toHours = (mins) =>
-    mins && mins > 0 ? (mins / 60).toFixed(1) : "0.0";
+      if (error) {
+        console.error("Error loading intern_profiles for executive view:", error);
+        const msg = (error.message || "").toLowerCase();
+        const isMissingTable =
+          error.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
 
-  // --- Global stats ---
-  const totalSessions = sessions.length;
-  const totalMinutes = sessions.reduce(
-    (sum, s) => sum + (s.duration_minutes || 0),
-    0
-  );
-  const totalHours = parseFloat(toHours(totalMinutes));
-
-  const internsWithSupervision = new Set(
-    sessions
-      .map((s) => s.intern_profiles?.id)
-      .filter((id) => Boolean(id))
-  ).size;
-
-  // --- Format stats: individual / dyad / group ---
-  const formatStats = {
-    individual: { minutes: 0, count: 0 },
-    dyad: { minutes: 0, count: 0 },
-    group: { minutes: 0, count: 0 },
-    other: { minutes: 0, count: 0 }
-  };
-
-  for (const s of sessions) {
-    const fmt = (s.format || "other").toLowerCase();
-    const key =
-      fmt === "individual" || fmt === "dyad" || fmt === "group" ? fmt : "other";
-    formatStats[key].minutes += s.duration_minutes || 0;
-    formatStats[key].count += 1;
-  }
-
-  // --- Hours by intern ---
-  const internMap = new Map();
-
-  for (const s of sessions) {
-    const intern = s.intern_profiles;
-    const internId = intern?.id || "unassigned";
-    const internName = intern?.full_name || "Intern (unassigned)";
-    const pronouns = intern?.pronouns || null;
-
-    if (!internMap.has(internId)) {
-      internMap.set(internId, {
-        id: internId,
-        name: internName,
-        pronouns,
-        totalMinutes: 0,
-        submittedMinutes: 0,
-        draftMinutes: 0,
-        sessionCount: 0
-      });
+        if (isMissingTable) {
+          interns = [];
+          loadError = null; // table just doesn’t exist yet
+        } else {
+          interns = [];
+          loadError = "Could not load interns from Supabase.";
+        }
+      } else {
+        interns = Array.isArray(data) ? data : [];
+      }
+    } catch (e) {
+      console.error("Unexpected error loading intern_profiles:", e);
+      interns = [];
+      loadError = "Could not load interns from Supabase.";
     }
 
-    const bucket = internMap.get(internId);
-    bucket.totalMinutes += s.duration_minutes || 0;
-    bucket.sessionCount += 1;
+    // ───────────────────────────
+    // 2) Load aggregated supervision hours by intern
+    // ───────────────────────────
+    try {
+      const { data, error } = await supabase
+        .from("supervision_sessions")
+        .select(
+          "intern_id, duration_minutes, is_counts_for_hours"
+        );
 
-    if (s.status === "submitted") {
-      bucket.submittedMinutes += s.duration_minutes || 0;
-    } else if (s.status === "draft") {
-      bucket.draftMinutes += s.duration_minutes || 0;
+      if (error) {
+        console.error(
+          "Error loading supervision_sessions aggregation for executive view:",
+          error
+        );
+        const msg = (error.message || "").toLowerCase();
+        const isMissingTable =
+          error.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
+
+        if (isMissingTable) {
+          sessionsAgg = [];
+        } else {
+          sessionsAgg = [];
+        }
+      } else {
+        sessionsAgg = Array.isArray(data) ? data : [];
+      }
+    } catch (e) {
+      console.error(
+        "Unexpected error loading supervision_sessions aggregation:",
+        e
+      );
+      sessionsAgg = [];
     }
   }
 
-  const internStats = Array.from(internMap.values()).sort((a, b) => {
-    // Sort by totalMinutes desc
-    return b.totalMinutes - a.totalMinutes;
-  });
+  // Build a map: intern_id → { totalMinutes, countedMinutes, sessionCount }
+  const perIntern = new Map();
+  for (const row of sessionsAgg) {
+    if (!row.intern_id) continue;
+    const minutes = Number(row.duration_minutes) || 0;
+    const counts = row.is_counts_for_hours !== false; // default true if null
+    const current = perIntern.get(row.intern_id) || {
+      totalMinutes: 0,
+      countedMinutes: 0,
+      sessionCount: 0
+    };
+    current.totalMinutes += minutes;
+    current.sessionCount += 1;
+    if (counts) current.countedMinutes += minutes;
+    perIntern.set(row.intern_id, current);
+  }
+
+  let totalSessions = 0;
+  let totalCountedMinutes = 0;
+  for (const v of perIntern.values()) {
+    totalSessions += v.sessionCount;
+    totalCountedMinutes += v.countedMinutes;
+  }
+  const totalCountedHours = totalCountedMinutes / 60;
 
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
-        {/* Sidebar – Supervision active */}
+        {/* ───────────────────────────
+            EXECUTIVE SIDEBAR 
+        ─────────────────────────── */}
         <aside className="sidebar">
           <p className="sidebar-title">Executive portal</p>
 
@@ -145,35 +144,25 @@ export default async function ExecutiveSupervisionPage() {
           </Link>
         </aside>
 
-        {/* Main content */}
+        {/* ───────────────────────────
+            MAIN CONTENT
+        ─────────────────────────── */}
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
               <RoleChip role="Executive" />
-              <h1 className="section-title">Supervision overview</h1>
+              <h1 className="section-title">Supervision & hours</h1>
               <p className="section-subtitle">
-                A program-level view of supervision activity across interns — how much
-                supervision is being delivered, in what formats, and how hours are
-                distributed across the cohort.
-              </p>
-              <p
-                style={{
-                  fontSize: "0.74rem",
-                  color: "#9ca3af",
-                  marginTop: "0.35rem"
-                }}
-              >
-                This screen does not expose supervision notes or client identifiers. It
-                focuses on structure, coverage, and hours — the information needed to
-                plan, report, and support supervisors and interns.
+                High-level visibility into how much supervision each intern is receiving,
+                and a way to drill down into the actual log for any intern.
               </p>
             </div>
           </header>
 
-          {/* TOP SUMMARY TILE */}
+          {/* SUMMARY TILE */}
           <section
             style={{
-              marginTop: "0.6rem",
+              marginTop: "0.7rem",
               marginBottom: "1.0rem",
               padding: "0.7rem 0.9rem",
               borderRadius: "0.9rem",
@@ -203,32 +192,42 @@ export default async function ExecutiveSupervisionPage() {
               }}
             >
               <SummaryPill
-                label="Total supervision hours"
-                value={`${totalHours.toFixed(1)} h`}
-                hint="All logged sessions in this prototype environment"
+                label="Interns in system"
+                value={`${interns.length}`}
+                hint="Rows in intern_profiles"
               />
               <SummaryPill
-                label="Supervision sessions"
+                label="Supervision sessions logged"
                 value={`${totalSessions}`}
-                hint="Number of encounters logged"
+                hint="Rows in supervision_sessions"
               />
               <SummaryPill
-                label="Interns with supervision"
-                value={`${internsWithSupervision}`}
-                hint="Interns who appear at least once in the log"
+                label="Counted supervision hours"
+                value={`${totalCountedHours.toFixed(1)} hrs`}
+                hint="Where is_counts_for_hours = true (or null)"
               />
             </div>
+
+            {loadError && (
+              <p
+                style={{
+                  marginTop: "0.3rem",
+                  fontSize: "0.76rem",
+                  color: "#fecaca"
+                }}
+              >
+                {loadError}
+              </p>
+            )}
           </section>
 
-          {/* FORMAT BREAKDOWN */}
+          {/* INTERN GRID */}
           <section
             style={{
-              marginBottom: "1.4rem",
               padding: "0.9rem 1rem",
               borderRadius: "0.9rem",
               border: "1px solid rgba(148,163,184,0.4)",
-              background:
-                "radial-gradient(circle at top left, rgba(148,163,184,0.16), rgba(15,23,42,1))",
+              backgroundColor: "rgba(15,23,42,1)",
               display: "grid",
               gap: "0.7rem"
             }}
@@ -243,160 +242,71 @@ export default async function ExecutiveSupervisionPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Supervision formats
+                Intern supervision coverage
               </p>
               <p
                 style={{
                   fontSize: "0.78rem",
                   color: "#cbd5f5",
-                  maxWidth: "32rem"
+                  maxWidth: "40rem"
                 }}
               >
-                A high-level breakdown of how supervision time is structured — individual
-                supervision for deep case work, dyads, and group supervision that
-                supports peer learning and sustainability.
+                Each card shows a quick summary of supervision coverage by intern. Click
+                &quot;View supervision log&quot; to see the detailed record of sessions
+                for that intern (dates, minutes, supervisor, notes).
               </p>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "0.85rem"
-              }}
-            >
-              <FormatPill
-                label="Individual"
-                stat={formatStats.individual}
-                toHours={toHours}
-              />
-              <FormatPill
-                label="Dyad"
-                stat={formatStats.dyad}
-                toHours={toHours}
-              />
-              <FormatPill
-                label="Group"
-                stat={formatStats.group}
-                toHours={toHours}
-              />
-              <FormatPill
-                label="Other / unspecified"
-                stat={formatStats.other}
-                toHours={toHours}
-              />
-            </div>
-          </section>
-
-          {/* HOURS BY INTERN */}
-          <section
-            style={{
-              padding: "0.9rem 1rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.35)",
-              backgroundColor: "rgba(15,23,42,1)",
-              display: "grid",
-              gap: "0.6rem"
-            }}
-          >
-            <div>
+            {interns.length === 0 && !loadError && (
               <p
                 style={{
-                  fontSize: "0.74rem",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#e5e7eb",
-                  marginBottom: "0.25rem"
-                }}
-              >
-                Hours by intern (prototype data)
-              </p>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#cbd5f5",
-                  maxWidth: "36rem"
-                }}
-              >
-                This table illustrates how supervision hours are distributed across the
-                intern cohort. In a live system, you could filter by semester, school,
-                supervisor, or program to support planning and reporting.
-              </p>
-            </div>
-
-            {internStats.length === 0 && !loadError && (
-              <p
-                style={{
-                  fontSize: "0.78rem",
+                  fontSize: "0.8rem",
                   color: "#e5e7eb"
                 }}
               >
-                There are no supervision sessions yet, so there is nothing to display by
-                intern. Once sessions are logged, this table will populate automatically.
+                No interns have been added yet. Once rows exist in{" "}
+                <code
+                  style={{
+                    fontSize: "0.74rem",
+                    backgroundColor: "rgba(15,23,42,0.9)",
+                    padding: "0.06rem 0.25rem",
+                    borderRadius: "0.35rem",
+                    border: "1px solid rgba(30,64,175,0.8)"
+                  }}
+                >
+                  intern_profiles
+                </code>
+                , they will appear here automatically.
               </p>
             )}
 
-            {internStats.length > 0 && (
+            {interns.length > 0 && (
               <div
+                className="card-grid"
                 style={{
-                  overflowX: "auto"
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))"
                 }}
               >
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: "0.78rem"
-                  }}
-                >
-                  <thead>
-                    <tr
-                      style={{
-                        textAlign: "left",
-                        borderBottom: "1px solid rgba(55,65,81,0.8)"
-                      }}
-                    >
-                      <th style={{ padding: "0.35rem 0.4rem" }}>Intern</th>
-                      <th style={{ padding: "0.35rem 0.4rem" }}>Sessions</th>
-                      <th style={{ padding: "0.35rem 0.4rem" }}>Total hours</th>
-                      <th style={{ padding: "0.35rem 0.4rem" }}>Submitted hours</th>
-                      <th style={{ padding: "0.35rem 0.4rem" }}>Draft hours</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {internStats.map((it) => {
-                      const totalH = parseFloat(toHours(it.totalMinutes));
-                      const submittedH = parseFloat(toHours(it.submittedMinutes));
-                      const draftH = parseFloat(toHours(it.draftMinutes));
+                {interns.map((intern) => {
+                  const agg = perIntern.get(intern.id) || {
+                    totalMinutes: 0,
+                    countedMinutes: 0,
+                    sessionCount: 0
+                  };
 
-                      return (
-                        <tr
-                          key={it.id}
-                          style={{
-                            borderBottom: "1px solid rgba(31,41,55,0.6)"
-                          }}
-                        >
-                          <td style={{ padding: "0.35rem 0.4rem" }}>
-                            {it.name}
-                            {it.pronouns ? ` (${it.pronouns})` : ""}
-                          </td>
-                          <td style={{ padding: "0.35rem 0.4rem" }}>
-                            {it.sessionCount}
-                          </td>
-                          <td style={{ padding: "0.35rem 0.4rem" }}>
-                            {totalH.toFixed(1)} h
-                          </td>
-                          <td style={{ padding: "0.35rem 0.4rem" }}>
-                            {submittedH.toFixed(1)} h
-                          </td>
-                          <td style={{ padding: "0.35rem 0.4rem" }}>
-                            {draftH.toFixed(1)} h
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                  const totalHours = agg.totalMinutes / 60;
+                  const countedHours = agg.countedMinutes / 60;
+
+                  return (
+                    <InternCard
+                      key={intern.id}
+                      intern={intern}
+                      totalHours={totalHours}
+                      countedHours={countedHours}
+                      sessionCount={agg.sessionCount}
+                    />
+                  );
+                })}
               </div>
             )}
           </section>
@@ -405,6 +315,10 @@ export default async function ExecutiveSupervisionPage() {
     </main>
   );
 }
+
+/* ───────────────────────────
+   PRESENTATIONAL PIECES
+──────────────────────────── */
 
 function SummaryPill({ label, value, hint }) {
   return (
@@ -450,45 +364,104 @@ function SummaryPill({ label, value, hint }) {
   );
 }
 
-function FormatPill({ label, stat, toHours }) {
-  const hours = parseFloat(toHours(stat.minutes));
+function InternCard({ intern, totalHours, countedHours, sessionCount }) {
+  const hoursLabel =
+    countedHours > 0
+      ? `${countedHours.toFixed(1)} hrs counted`
+      : "No counted hours yet";
+
+  const allHoursLabel =
+    totalHours > countedHours
+      ? `${totalHours.toFixed(1)} hrs total (including non-counted)`
+      : null;
+
   return (
-    <div
-      style={{
-        padding: "0.5rem 0.75rem",
-        borderRadius: "0.75rem",
-        border: "1px solid rgba(148,163,184,0.6)",
-        backgroundColor: "rgba(15,23,42,0.9)",
-        display: "grid",
-        gap: "0.1rem",
-        minWidth: "9.5rem"
-      }}
-    >
-      <p
-        style={{
-          fontSize: "0.76rem",
-          color: "#e5e7eb"
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          fontSize: "0.95rem",
-          fontWeight: 500,
-          color: "#e5e7eb"
-        }}
-      >
-        {hours.toFixed(1)} h
-      </p>
+    <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
       <p
         style={{
           fontSize: "0.7rem",
-          color: "#9ca3af"
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#9ca3af",
+          marginBottom: "0.25rem"
         }}
       >
-        {stat.count} session{stat.count === 1 ? "" : "s"}
+        Intern
       </p>
+      <h2
+        style={{
+          fontSize: "0.95rem",
+          fontWeight: 500,
+          color: "#f9fafb",
+          marginBottom: "0.15rem"
+        }}
+      >
+        {intern.full_name || "Unnamed intern"}
+      </h2>
+      {intern.email && (
+        <p
+          style={{
+            fontSize: "0.75rem",
+            color: "#9ca3af",
+            marginBottom: "0.3rem"
+          }}
+        >
+          {intern.email}
+        </p>
+      )}
+
+      <p
+        style={{
+          fontSize: "0.78rem",
+          color: "#e5e7eb",
+          marginBottom: "0.15rem"
+        }}
+      >
+        <strong>{hoursLabel}</strong>
+      </p>
+
+      {allHoursLabel && (
+        <p
+          style={{
+            fontSize: "0.74rem",
+            color: "#9ca3af",
+            marginBottom: "0.15rem"
+          }}
+        >
+          {allHoursLabel}
+        </p>
+      )}
+
+      <p
+        style={{
+          fontSize: "0.74rem",
+          color: "#9ca3af",
+          marginBottom: "0.4rem"
+        }}
+      >
+        {sessionCount === 0
+          ? "No supervision sessions logged yet."
+          : sessionCount === 1
+          ? "1 supervision session logged."
+          : `${sessionCount} supervision sessions logged.`}
+      </p>
+
+      <Link href={`/executive/supervision/${intern.id}`}>
+        <button
+          type="button"
+          style={{
+            fontSize: "0.76rem",
+            padding: "0.35rem 0.75rem",
+            borderRadius: "999px",
+            border: "1px solid rgba(129,140,248,0.9)",
+            backgroundColor: "rgba(15,23,42,0.95)",
+            color: "#e5e7eb",
+            cursor: "pointer"
+          }}
+        >
+          View supervision log
+        </button>
+      </Link>
     </div>
   );
 }
