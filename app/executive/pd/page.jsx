@@ -9,22 +9,10 @@ export default async function ExecutivePDPage() {
   let loadError = null;
 
   if (supabase) {
+    // 🔧 Safer: select all columns instead of a fixed list
     const { data, error } = await supabase
       .from("professional_development_events")
-      .select(
-        `
-        id,
-        title,
-        description,
-        location,
-        is_online,
-        capacity,
-        admission_type,
-        registration_slug,
-        date_start,
-        is_published
-      `
-      )
+      .select("*")
       .order("date_start", { ascending: true });
 
     if (error) {
@@ -58,10 +46,10 @@ export default async function ExecutivePDPage() {
     return d.getTime() < now.getTime();
   });
 
-  const totalCapacity = publishedEvents.reduce(
-    (sum, e) => sum + (e.capacity || 0),
-    0
-  );
+  const totalCapacity = publishedEvents.reduce((sum, e) => {
+    const cap = typeof e.capacity === "number" ? e.capacity : 0;
+    return sum + cap;
+  }, 0);
 
   return (
     <main className="main-shell">
@@ -471,14 +459,15 @@ function EventCard({ event, isDraft = false }) {
       ? "Online (link to be shared)"
       : event.location || "Location to be announced";
 
+  const admissionType = event.admission_type || null;
   const admissionLabel =
-    event.admission_type === "controlled"
+    admissionType === "controlled"
       ? "Controlled / invite-based"
-      : event.admission_type === "first_come"
+      : admissionType === "first_come"
       ? "First-come, first-served"
       : "Admission rules TBA";
 
-  const capacityLabel =
+  const cap =
     typeof event.capacity === "number" && event.capacity > 0
       ? `${event.capacity} seats`
       : "Capacity TBA";
@@ -560,7 +549,7 @@ function EventCard({ event, isDraft = false }) {
           marginBottom: "0.2rem"
         }}
       >
-        <strong>Capacity:</strong> {capacityLabel}
+        <strong>Capacity:</strong> {cap}
       </p>
 
       {event.registration_slug && (
