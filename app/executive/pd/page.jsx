@@ -605,6 +605,16 @@ function EventCard({ event, interestCount = 0, isPast = false }) {
 
   const capacityLabel = cap && cap > 0 ? `${cap} seats` : "Capacity TBA";
 
+  const priceLabel =
+    event && event.price != null
+      ? `$${Number(event.price).toFixed(2)}`
+      : "Price TBA";
+
+  const institutionLabel =
+    event && event.institution
+      ? event.institution
+      : "Institution TBA";
+
   const interestLabel =
     interestCount === 0
       ? "No interest recorded yet"
@@ -684,6 +694,26 @@ function EventCard({ event, interestCount = 0, isPast = false }) {
         }}
       >
         <strong>Capacity:</strong> {capacityLabel}
+      </p>
+
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Price:</strong> {priceLabel}
+      </p>
+
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.3rem"
+        }}
+      >
+        <strong>Institution:</strong> {institutionLabel}
       </p>
 
       <p

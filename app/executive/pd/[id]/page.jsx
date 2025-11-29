@@ -129,6 +129,16 @@ export default async function ExecutivePDDetailPage({ params }) {
   const capacityLabel =
     cap && cap > 0 ? `${cap} seats` : "Capacity to be determined";
 
+  const priceLabel =
+    event && event.price != null
+      ? `$${Number(event.price).toFixed(2)}`
+      : "Price to be determined";
+
+  const institutionLabel =
+    event && event.institution
+      ? event.institution
+      : "Institution / provider to be determined";
+
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
@@ -288,6 +298,12 @@ export default async function ExecutivePDDetailPage({ params }) {
                   </p>
                   <p>
                     <strong>Capacity:</strong> {capacityLabel}
+                  </p>
+                  <p>
+                    <strong>Price:</strong> {priceLabel}
+                  </p>
+                  <p>
+                    <strong>Institution:</strong> {institutionLabel}
                   </p>
                   {event.registration_slug && (
                     <p>

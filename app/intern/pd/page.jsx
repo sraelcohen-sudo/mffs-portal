@@ -73,7 +73,9 @@ export default function InternPDPage() {
 
     // Gentle nudge to include a name
     if (!internName.trim()) {
-      setNameHint("For this prototype, please add your name above so the executive view can see who requested a spot.");
+      setNameHint(
+        "For this prototype, please add your name above so the executive view can see who requested a spot."
+      );
       return;
     } else {
       setNameHint("");
@@ -577,6 +579,16 @@ function EventCard({
 
   const capacityLabel = cap && cap > 0 ? `${cap} seats` : "Capacity TBA";
 
+  const priceLabel =
+    event && event.price != null
+      ? `$${Number(event.price).toFixed(2)}`
+      : "Price TBA";
+
+  const institutionLabel =
+    event && event.institution
+      ? event.institution
+      : "Institution TBA";
+
   const canClick = !!onRequestSpot && !isPast && !submitted && !submitting;
 
   let buttonLabel = "Request a spot (demo)";
@@ -656,6 +668,26 @@ function EventCard({
         }}
       >
         <strong>Capacity:</strong> {capacityLabel}
+      </p>
+
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Price:</strong> {priceLabel}
+      </p>
+
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.3rem"
+        }}
+      >
+        <strong>Institution:</strong> {institutionLabel}
       </p>
 
       <button

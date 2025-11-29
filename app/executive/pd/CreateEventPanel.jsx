@@ -12,6 +12,8 @@ export default function CreateEventPanel() {
     location: "",
     admission_type: "controlled",
     capacity: "",
+    price: "",
+    institution: "",
     registration_slug: ""
   });
 
@@ -56,6 +58,15 @@ export default function CreateEventPanel() {
         }
       }
 
+      // Convert price to number, if possible
+      let priceValue = null;
+      if (form.price !== "") {
+        const parsed = Number(form.price);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          priceValue = parsed;
+        }
+      }
+
       // Convert datetime-local to ISO string (if provided)
       let startsAtValue = null;
       if (form.starts_at) {
@@ -72,6 +83,8 @@ export default function CreateEventPanel() {
         location: form.location.trim() || null,
         admission_type: form.admission_type || "controlled",
         capacity: capacityValue,
+        price: priceValue,
+        institution: form.institution.trim() || null,
         registration_slug: form.registration_slug.trim() || null
       };
 
@@ -84,12 +97,12 @@ export default function CreateEventPanel() {
         setStatusTone("error");
         setStatusMessage(
           error.message ||
-            "Could not create event. Please check the PD table schema."
+            "Could not create event. Please check the PD table schema / policies."
         );
       } else {
         setStatusTone("success");
         setStatusMessage(
-          "Event created. Refresh the page to see it in the lists below."
+          "Event created. Refresh the page to see it in the lists below and in the intern view."
         );
         // Soft reset of the form
         setForm({
@@ -99,6 +112,8 @@ export default function CreateEventPanel() {
           location: "",
           admission_type: "controlled",
           capacity: "",
+          price: "",
+          institution: "",
           registration_slug: ""
         });
       }
@@ -234,7 +249,7 @@ export default function CreateEventPanel() {
           </div>
         </div>
 
-        {/* Admission / capacity */}
+        {/* Admission / capacity / price */}
         <div
           style={{
             display: "grid",
@@ -256,17 +271,50 @@ export default function CreateEventPanel() {
             </select>
           </div>
 
-          <div style={{ display: "grid", gap: "0.18rem" }}>
-            <label style={{ color: "#e5e7eb" }}>Capacity (optional)</label>
-            <input
-              type="number"
-              min="0"
-              value={form.capacity}
-              onChange={handleChange("capacity")}
-              placeholder="e.g., 25"
-              style={inputStyle}
-            />
+          <div
+            style={{
+              display: "grid",
+              gap: "0.35rem",
+              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)"
+            }}
+          >
+            <div style={{ display: "grid", gap: "0.18rem" }}>
+              <label style={{ color: "#e5e7eb" }}>Capacity (optional)</label>
+              <input
+                type="number"
+                min="0"
+                value={form.capacity}
+                onChange={handleChange("capacity")}
+                placeholder="e.g., 25"
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ display: "grid", gap: "0.18rem" }}>
+              <label style={{ color: "#e5e7eb" }}>Price (optional)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.price}
+                onChange={handleChange("price")}
+                placeholder="e.g., 120.00"
+                style={inputStyle}
+              />
+            </div>
           </div>
+        </div>
+
+        {/* Institution */}
+        <div style={{ display: "grid", gap: "0.18rem" }}>
+          <label style={{ color: "#e5e7eb" }}>Institution (optional)</label>
+          <input
+            type="text"
+            value={form.institution}
+            onChange={handleChange("institution")}
+            placeholder="e.g., Sexual Health Alliance, MSTI, MFFS in-house"
+            style={inputStyle}
+          />
         </div>
 
         {/* Registration slug */}
