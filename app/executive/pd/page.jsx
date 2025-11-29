@@ -10,7 +10,7 @@ export default async function ExecutivePDPage() {
 
   if (supabase) {
     try {
-      // Safer: select everything, no ORDER in SQL (we'll sort in JS)
+      // Select everything; we’ll adapt in JS
       const { data, error } = await supabase
         .from("professional_development_events")
         .select("*");
@@ -20,8 +20,7 @@ export default async function ExecutivePDPage() {
 
         const msg = (error.message || "").toLowerCase();
 
-        // If the table or columns don't exist yet in this fresh Supabase project,
-        // treat it as "no events yet" instead of showing an error.
+        // If the table doesn’t exist yet, treat as “no events” without error UI
         const isMissingTable =
           error.code === "42P01" ||
           msg.includes("does not exist") ||
@@ -29,7 +28,7 @@ export default async function ExecutivePDPage() {
 
         if (isMissingTable) {
           events = [];
-          loadError = null; // swallow this for a clean UI
+          loadError = null;
         } else {
           loadError = "Could not load professional development events from Supabase.";
         }
@@ -48,32 +47,32 @@ export default async function ExecutivePDPage() {
   // ----- Derived metrics -----
   const now = new Date();
 
-  const publishedEvents = events.filter((e) => e.is_published === true);
-  const draftEvents = events.filter(
-    (e) => e.is_published === false || typeof e.is_published === "undefined"
-  );
+  // In this schema, there is no is_published column.
+  // For the prototype, we treat ALL rows as "published".
+  const publishedEvents = events;
+  const draftEvents = []; // none for now in this simplified schema
 
-  // Sort by date_start in JS (if present)
-  const sortByDate = (arr) =>
+  // Utility: sort by starts_at in JS
+  const sortByStartsAt = (arr) =>
     [...arr].sort((a, b) => {
-      const da = a.date_start ? new Date(a.date_start).getTime() : 0;
-      const db = b.date_start ? new Date(b.date_start).getTime() : 0;
+      const da = a.starts_at ? new Date(a.starts_at).getTime() : 0;
+      const db = b.starts_at ? new Date(b.starts_at).getTime() : 0;
       return da - db;
     });
 
-  const upcomingEvents = sortByDate(
+  const upcomingEvents = sortByStartsAt(
     publishedEvents.filter((e) => {
-      if (!e.date_start) return false;
-      const d = new Date(e.date_start);
+      if (!e.starts_at) return false;
+      const d = new Date(e.starts_at);
       if (Number.isNaN(d.getTime())) return false;
       return d.getTime() >= now.getTime();
     })
   );
 
-  const pastEvents = sortByDate(
+  const pastEvents = sortByStartsAt(
     publishedEvents.filter((e) => {
-      if (!e.date_start) return false;
-      const d = new Date(e.date_start);
+      if (!e.starts_at) return false;
+      const d = new Date(e.starts_at);
       if (Number.isNaN(d.getTime())) return false;
       return d.getTime() < now.getTime();
     })
@@ -135,8 +134,8 @@ export default async function ExecutivePDPage() {
               <h1 className="section-title">Professional development & events</h1>
               <p className="section-subtitle">
                 A high-level view of professional development offerings for interns and
-                supervisors — what&apos;s planned, what&apos;s published, and how the
-                training ecosystem is structured.
+                supervisors — what&apos;s planned, when it happens, and how capacity is
+                distributed.
               </p>
               <p
                 style={{
@@ -145,7 +144,7 @@ export default async function ExecutivePDPage() {
                   marginTop: "0.35rem"
                 }}
               >
-                This is a prototype view: events are read from the{" "}
+                This prototype reads directly from the{" "}
                 <code
                   style={{
                     fontSize: "0.72rem",
@@ -157,8 +156,8 @@ export default async function ExecutivePDPage() {
                 >
                   professional_development_events
                 </code>{" "}
-                table in Supabase. If that table does not exist yet in this project,
-                this screen will simply show that there are no events configured.
+                table in Supabase. In this simplified schema, all rows are treated as
+                published professional development offerings.
               </p>
             </div>
           </header>
@@ -196,31 +195,31 @@ export default async function ExecutivePDPage() {
               }}
             >
               <SummaryPill
-                label="Published events"
+                label="Total PD events"
                 value={`${publishedEvents.length}`}
-                hint="Visible to interns and supervisors"
+                hint="All entries in the PD table"
               />
               <SummaryPill
-                label="Draft events"
-                value={`${draftEvents.length}`}
-                hint="Still being shaped before launch"
-              />
-              <SummaryPill
-                label="Upcoming published events"
+                label="Upcoming events"
                 value={`${upcomingEvents.length}`}
-                hint="Future dates with published status"
+                hint="Events with a future start date"
               />
               <SummaryPill
-                label="Combined capacity (published)"
+                label="Past events"
+                value={`${pastEvents.length}`}
+                hint="Events with a past start date"
+              />
+              <SummaryPill
+                label="Combined capacity"
                 value={
                   totalCapacity > 0 ? `${totalCapacity} seats` : "To be determined"
                 }
-                hint="Based on the capacity field on each published event"
+                hint="Based on the capacity field on each event"
               />
             </div>
           </section>
 
-          {/* ERROR STATE – only show if Supabase itself is misconfigured */}
+          {/* ERROR STATE – only if Supabase configuration is broken */}
           {loadError && (
             <section
               style={{
@@ -265,7 +264,7 @@ export default async function ExecutivePDPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Upcoming published events
+                Upcoming events
               </p>
               <p
                 style={{
@@ -274,8 +273,19 @@ export default async function ExecutivePDPage() {
                   maxWidth: "34rem"
                 }}
               >
-                These events have a future start date and are marked as published. In a
-                live version, interns would be able to request a spot or register
+                These events have a future{" "}
+                <code
+                  style={{
+                    fontSize: "0.72rem",
+                    backgroundColor: "rgba(15,23,42,0.9)",
+                    padding: "0.06rem 0.26rem",
+                    borderRadius: "0.35rem",
+                    border: "1px solid rgba(30,64,175,0.8)"
+                  }}
+                >
+                  starts_at
+                </code>{" "}
+                date. In a live system, interns could request a spot or register
                 directly through their portal.
               </p>
             </div>
@@ -287,8 +297,8 @@ export default async function ExecutivePDPage() {
                   color: "#e5e7eb"
                 }}
               >
-                There are no upcoming published events yet. Once events are added with
-                future dates and marked as published, they will appear here.
+                There are no upcoming events yet. Once future-dated events are added to
+                the PD table, they will appear here automatically.
               </p>
             )}
 
@@ -306,7 +316,7 @@ export default async function ExecutivePDPage() {
             )}
           </section>
 
-          {/* PAST EVENTS (PUBLISHED) */}
+          {/* PAST EVENTS */}
           <section
             style={{
               marginBottom: "1.4rem",
@@ -328,7 +338,7 @@ export default async function ExecutivePDPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Past published events
+                Past events
               </p>
               <p
                 style={{
@@ -337,9 +347,9 @@ export default async function ExecutivePDPage() {
                   maxWidth: "36rem"
                 }}
               >
-                Previously delivered professional development. In the future, this area
-                could be connected to recordings, slide decks, and attendance data to
-                support grant reporting and quality improvement.
+                Delivered professional development that has already taken place. In
+                future iterations, this could link to recordings, materials, and
+                attendance data to support reporting and continuous improvement.
               </p>
             </div>
 
@@ -350,7 +360,7 @@ export default async function ExecutivePDPage() {
                   color: "#e5e7eb"
                 }}
               >
-                No past published events are recorded yet.
+                No past events are recorded yet.
               </p>
             )}
 
@@ -368,7 +378,7 @@ export default async function ExecutivePDPage() {
             )}
           </section>
 
-          {/* DRAFT EVENTS */}
+          {/* DRAFT EVENTS (none in this schema, but we keep the section as a design affordance) */}
           <section
             style={{
               padding: "0.9rem 1rem",
@@ -389,7 +399,7 @@ export default async function ExecutivePDPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Draft events
+                Draft events (future feature)
               </p>
               <p
                 style={{
@@ -398,9 +408,19 @@ export default async function ExecutivePDPage() {
                   maxWidth: "36rem"
                 }}
               >
-                Events that are being shaped before publication. The training
-                coordinator and executive team might use this area to plan themes, fill
-                gaps, and coordinate external facilitators.
+                In a future version, events could have a dedicated{" "}
+                <code
+                  style={{
+                    fontSize: "0.72rem",
+                    backgroundColor: "rgba(15,23,42,0.9)",
+                    padding: "0.06rem 0.26rem",
+                    borderRadius: "0.35rem",
+                    border: "1px solid rgba(30,64,175,0.8)"
+                  }}
+                >
+                  is_published
+                </code>{" "}
+                flag. For now, all rows in the PD table are treated as live offerings.
               </p>
             </div>
 
@@ -411,7 +431,7 @@ export default async function ExecutivePDPage() {
                   color: "#e5e7eb"
                 }}
               >
-                There are no draft events at the moment.
+                There are no draft events in this prototype schema.
               </p>
             )}
 
@@ -483,19 +503,14 @@ function SummaryPill({ label, value, hint }) {
 }
 
 function EventCard({ event, isDraft = false }) {
-  const dateText = event.date_start
-    ? new Date(event.date_start).toLocaleString("en-CA", {
+  const dateText = event.starts_at
+    ? new Date(event.starts_at).toLocaleString("en-CA", {
         dateStyle: "medium",
         timeStyle: "short"
       })
     : "Date to be announced";
 
-  const modeLabel = event.is_online ? "Online" : "In-person";
-
-  const locationLabel =
-    event.is_online && !event.location
-      ? "Online (link to be shared)"
-      : event.location || "Location to be announced";
+  const locationLabel = event.location || "Location to be announced";
 
   const admissionType = event.admission_type || null;
   const admissionLabel =
@@ -525,7 +540,7 @@ function EventCard({ event, isDraft = false }) {
           marginBottom: "0.25rem"
         }}
       >
-        {isDraft ? "Draft event" : "Published event"}
+        {isDraft ? "Draft event" : "PD event"}
       </p>
       <h2
         style={{
@@ -557,15 +572,7 @@ function EventCard({ event, isDraft = false }) {
       >
         <strong>Date:</strong> {dateText}
       </p>
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.2rem"
-        }}
-      >
-        <strong>Mode:</strong> {modeLabel}
-      </p>
+
       <p
         style={{
           fontSize: "0.75rem",
@@ -575,6 +582,7 @@ function EventCard({ event, isDraft = false }) {
       >
         <strong>Location:</strong> {locationLabel}
       </p>
+
       <p
         style={{
           fontSize: "0.75rem",
@@ -584,6 +592,7 @@ function EventCard({ event, isDraft = false }) {
       >
         <strong>Admission:</strong> {admissionLabel}
       </p>
+
       <p
         style={{
           fontSize: "0.75rem",
