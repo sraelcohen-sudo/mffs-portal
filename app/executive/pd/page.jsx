@@ -3,12 +3,6 @@ import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 
 export default async function ExecutivePDPage() {
-  // 🔎 DEBUG: show whether env vars are visible to this page
-  const envDebug = {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "set" : "missing",
-    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "set" : "missing",
-  };
-
   const supabase = createSupabaseClient();
 
   let events = [];
@@ -18,14 +12,24 @@ export default async function ExecutivePDPage() {
     const { data, error } = await supabase
       .from("professional_development_events")
       .select(
-        "id, title, description, starts_at, location, admission_type, capacity, registration_slug"
+        `
+        id,
+        title,
+        description,
+        location,
+        is_online,
+        capacity,
+        admission_type,
+        registration_slug,
+        date_start,
+        is_published
+      `
       )
-      .order("starts_at", { ascending: true })
-      .limit(12);
+      .order("date_start", { ascending: true });
 
     if (error) {
-      console.error("Error loading PD events:", error);
-      loadError = "Could not load events from Supabase.";
+      console.error("Error loading PD events for executive view:", error);
+      loadError = "Could not load professional development events from Supabase.";
     } else {
       events = data || [];
     }
@@ -34,38 +38,58 @@ export default async function ExecutivePDPage() {
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
   }
 
+  // ----- Derived metrics -----
+  const now = new Date();
+
+  const publishedEvents = events.filter((e) => e.is_published);
+  const draftEvents = events.filter((e) => !e.is_published);
+
+  const upcomingEvents = publishedEvents.filter((e) => {
+    if (!e.date_start) return false;
+    const d = new Date(e.date_start);
+    if (Number.isNaN(d.getTime())) return false;
+    return d.getTime() >= now.getTime();
+  });
+
+  const pastEvents = publishedEvents.filter((e) => {
+    if (!e.date_start) return false;
+    const d = new Date(e.date_start);
+    if (Number.isNaN(d.getTime())) return false;
+    return d.getTime() < now.getTime();
+  });
+
+  const totalCapacity = publishedEvents.reduce(
+    (sum, e) => sum + (e.capacity || 0),
+    0
+  );
+
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
-        {/* Sidebar – Professional development active */}
+        {/* ───────────────────────────
+            EXECUTIVE SIDEBAR 
+        ─────────────────────────── */}
         <aside className="sidebar">
           <p className="sidebar-title">Executive portal</p>
 
           <Link href="/executive">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">Today</div>
+              <div className="sidebar-link-subtitle">Program</div>
             </button>
           </Link>
 
-          <Link href="/executive/capacity">
+          <Link href="/executive/supervision">
             <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Clients & capacity</div>
-              <div className="sidebar-link-subtitle">Sites & programs</div>
+              <div className="sidebar-link-title">Supervision overview</div>
+              <div className="sidebar-link-subtitle">Hours & coverage</div>
             </button>
           </Link>
 
           <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Professional development</div>
-            <div className="sidebar-link-subtitle">Calendar & uptake</div>
+            <div className="sidebar-link-title">PD & events</div>
+            <div className="sidebar-link-subtitle">Intern ecosystem</div>
           </button>
-
-          <Link href="/executive/grants">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Grant & reporting</div>
-              <div className="sidebar-link-subtitle">Impact metrics</div>
-            </button>
-          </Link>
 
           <Link href="/login">
             <button className="sidebar-link" type="button">
@@ -75,33 +99,125 @@ export default async function ExecutivePDPage() {
           </Link>
         </aside>
 
-        {/* Main content */}
+        {/* ───────────────────────────
+            MAIN CONTENT
+        ─────────────────────────── */}
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
               <RoleChip role="Executive" />
-              <h1 className="section-title">Professional development</h1>
+              <h1 className="section-title">Professional development & events</h1>
               <p className="section-subtitle">
-                A single place to see planned, requested, and completed professional
-                development for interns and supervisors—and how it aligns with MFFS
-                priorities and grant commitments.
+                A high-level view of professional development offerings for interns and
+                supervisors — what&apos;s planned, what&apos;s published, and how the
+                training ecosystem is structured.
               </p>
-
-              {/* 🔎 Show env status VERY SMALL */}
               <p
                 style={{
-                  fontSize: "0.7rem",
+                  fontSize: "0.74rem",
                   color: "#9ca3af",
-                  marginTop: "0.4rem",
+                  marginTop: "0.35rem"
                 }}
               >
-                Env debug — URL: <strong>{envDebug.url}</strong>, Key:{" "}
-                <strong>{envDebug.key}</strong>
+                This is a prototype view: events are read from the{" "}
+                <code
+                  style={{
+                    fontSize: "0.72rem",
+                    backgroundColor: "rgba(15,23,42,0.9)",
+                    padding: "0.08rem 0.3rem",
+                    borderRadius: "0.35rem",
+                    border: "1px solid rgba(30,64,175,0.8)"
+                  }}
+                >
+                  professional_development_events
+                </code>{" "}
+                table in Supabase. In a live system, executives and the training
+                coordinator would be able to create, update, and archive events from
+                this screen.
               </p>
             </div>
           </header>
 
-          {/* LIVE DATA STRIP */}
+          {/* TOP SUMMARY TILE */}
+          <section
+            style={{
+              marginTop: "0.6rem",
+              marginBottom: "1.0rem",
+              padding: "0.7rem 0.9rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.5)",
+              background:
+                "radial-gradient(circle at top left, rgba(15,23,42,1), rgba(15,23,42,1))",
+              display: "grid",
+              gap: "0.45rem"
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.72rem",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#9ca3af"
+              }}
+            >
+              Professional development snapshot (prototype)
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.85rem"
+              }}
+            >
+              <SummaryPill
+                label="Published events"
+                value={`${publishedEvents.length}`}
+                hint="Visible to interns and supervisors"
+              />
+              <SummaryPill
+                label="Draft events"
+                value={`${draftEvents.length}`}
+                hint="Still being shaped before launch"
+              />
+              <SummaryPill
+                label="Upcoming published events"
+                value={`${upcomingEvents.length}`}
+                hint="Future dates with published status"
+              />
+              <SummaryPill
+                label="Combined capacity (published)"
+                value={
+                  totalCapacity > 0 ? `${totalCapacity} seats` : "To be determined"
+                }
+                hint="Based on the capacity field on each published event"
+              />
+            </div>
+          </section>
+
+          {/* ERROR STATE */}
+          {loadError && (
+            <section
+              style={{
+                marginBottom: "1.2rem",
+                padding: "0.8rem 0.9rem",
+                borderRadius: "0.75rem",
+                border: "1px solid rgba(248,113,113,0.6)",
+                backgroundColor: "rgba(127,29,29,0.75)"
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#fee2e2"
+                }}
+              >
+                {loadError}
+              </p>
+            </section>
+          )}
+
+          {/* UPCOMING EVENTS */}
           <section
             style={{
               marginBottom: "1.4rem",
@@ -111,258 +227,262 @@ export default async function ExecutivePDPage() {
               background:
                 "radial-gradient(circle at top left, rgba(148,163,184,0.16), rgba(15,23,42,1))",
               display: "grid",
-              gap: "0.7rem",
+              gap: "0.7rem"
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "0.75rem",
-                alignItems: "baseline",
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <p
-                  style={{
-                    fontSize: "0.74rem",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "#e5e7eb",
-                    marginBottom: "0.25rem",
-                  }}
-                >
-                  Live example · Professional development events
-                </p>
-                <p
-                  style={{
-                    fontSize: "0.78rem",
-                    color: "#cbd5f5",
-                    maxWidth: "32rem",
-                  }}
-                >
-                  These rows are loaded directly from the{" "}
-                  <code
-                    style={{
-                      fontSize: "0.72rem",
-                      backgroundColor: "rgba(15,23,42,0.9)",
-                      padding: "0.08rem 0.3rem",
-                      borderRadius: "0.35rem",
-                      border: "1px solid rgba(30,64,175,0.8)",
-                    }}
-                  >
-                    professional_development_events
-                  </code>{" "}
-                  table in Supabase. In a live build, this is what training
-                  coordinators and executives would actually manage.
-                </p>
-              </div>
-            </div>
-
-            {loadError && (
+            <div>
               <p
                 style={{
-                  fontSize: "0.75rem",
-                  color: "#fecaca",
+                  fontSize: "0.74rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#e5e7eb",
+                  marginBottom: "0.25rem"
                 }}
               >
-                {loadError}
+                Upcoming published events
               </p>
-            )}
-
-            {!loadError && events.length === 0 && (
               <p
                 style={{
                   fontSize: "0.78rem",
-                  color: "#e5e7eb",
+                  color: "#cbd5f5",
+                  maxWidth: "34rem"
                 }}
               >
-                There are no professional development events in the database yet. Once
-                an event is added in Supabase, it will appear here automatically.
+                These events have a future start date and are marked as published. In a
+                live version, interns would be able to request a spot or register
+                directly through their portal.
+              </p>
+            </div>
+
+            {upcomingEvents.length === 0 && !loadError && (
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#e5e7eb"
+                }}
+              >
+                There are no upcoming published events yet. Once events are added with
+                future dates and marked as published, they will appear here.
               </p>
             )}
 
-            {!loadError && events.length > 0 && (
+            {upcomingEvents.length > 0 && (
               <div
+                className="card-grid"
                 style={{
-                  display: "grid",
-                  gap: "0.55rem",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))"
                 }}
               >
-                {events.map((event) => (
-                  <EventRow key={event.id} event={event} />
+                {upcomingEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
                 ))}
               </div>
             )}
           </section>
 
-          {/* DESCRIPTIVE CARDS BELOW (STATIC DESIGN) */}
-          <div className="card-grid">
-            <PDCard
-              label="Calendar"
-              title="PD calendar at a glance"
-              body="Executives and training coordinators can see upcoming PD events across the year: live workshops, ongoing groups, external trainings, and on-demand courses."
-              bullets={[
-                "Month-by-month view of PD offerings",
-                "Filters by audience (interns, supervisors, staff)",
-                "Shows modality (online, in-person, hybrid)",
-              ]}
-            />
+          {/* PAST EVENTS (PUBLISHED) */}
+          <section
+            style={{
+              marginBottom: "1.4rem",
+              padding: "0.9rem 1rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.35)",
+              backgroundColor: "rgba(15,23,42,1)",
+              display: "grid",
+              gap: "0.6rem"
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  fontSize: "0.74rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#e5e7eb",
+                  marginBottom: "0.25rem"
+                }}
+              >
+                Past published events
+              </p>
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#cbd5f5",
+                  maxWidth: "36rem"
+                }}
+              >
+                Previously delivered professional development. In the future, this area
+                could be connected to recordings, slide decks, and attendance data to
+                support grant reporting and quality improvement.
+              </p>
+            </div>
 
-            <PDCard
-              label="Alignment"
-              title="Alignment with priorities"
-              body="Each PD offering can be tagged with themes (for example, trauma, sex therapy, 2SLGBTQ+ care, cultural safety, supervision skills) and linked to strategic goals or specific grant requirements."
-              bullets={[
-                "Tags for topic, population focus, and modality",
-                "Links to strategic priorities and specific grants",
-                "Quick view of which areas are heavily supported vs. under-resourced",
-              ]}
-            />
+            {pastEvents.length === 0 && !loadError && (
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#e5e7eb"
+                }}
+              >
+                No past published events are recorded yet.
+              </p>
+            )}
 
-            <PDCard
-              label="Attendance"
-              title="Attendance & completion"
-              body="Interns and supervisors can be marked as registered and/or completed for each PD event. Executives can then see uptake and reach by role, site, program, or population focus."
-              bullets={[
-                "Attendance across interns, supervisors, and staff",
-                "Completion markers for required trainings",
-                "Identify where follow-up or make-up sessions are needed",
-              ]}
-            />
+            {pastEvents.length > 0 && (
+              <div
+                className="card-grid"
+                style={{
+                  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))"
+                }}
+              >
+                {pastEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            )}
+          </section>
 
-            <PDCard
-              label="Requests"
-              title="Bottom-up PD requests"
-              body="Interns and supervisors can propose PD topics or flag needs (for example, more sex therapy content, specific trauma topics, or military family-focused work), giving executives a clearer view of ground-level needs."
-              bullets={[
-                "Request queue for new PD ideas",
-                "Tags on requests (topic, urgency, target audience)",
-                "Helps prioritize offerings that meet real front-line needs",
-              ]}
-            />
+          {/* DRAFT EVENTS */}
+          <section
+            style={{
+              padding: "0.9rem 1rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.35)",
+              backgroundColor: "rgba(15,23,42,1)",
+              display: "grid",
+              gap: "0.6rem"
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  fontSize: "0.74rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#e5e7eb",
+                  marginBottom: "0.25rem"
+                }}
+              >
+                Draft events
+              </p>
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#cbd5f5",
+                  maxWidth: "36rem"
+                }}
+              >
+                Events that are being shaped before publication. The training
+                coordinator and executive team might use this area to plan themes, fill
+                gaps, and coordinate external facilitators.
+              </p>
+            </div>
 
-            <PDCard
-              label="Impact"
-              title="PD as quality & safety"
-              body="PD isn’t just hours in a spreadsheet; it’s an investment in safety and quality. This screen makes it easier to link PD efforts to supervision, client complexity, and areas where the organization is stretching."
-              bullets={[
-                "Cross-reference PD themes with client/population trends",
-                "Demonstrate how PD supports safe, ethical practice",
-                "Provide narrative material for quality improvement work",
-              ]}
-            />
+            {draftEvents.length === 0 && !loadError && (
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#e5e7eb"
+                }}
+              >
+                There are no draft events at the moment.
+              </p>
+            )}
 
-            <PDCard
-              label="For grants"
-              title="Training data for funders"
-              body="Funders often ask about how organizations support the people doing the work. With structured PD data, executives can report on the number of sessions offered, attendance by role, and focus areas without manual tracking."
-              bullets={[
-                "Counts of PD sessions and participants per period",
-                "Breakdown by role, site, and topic",
-                "Evidence of ongoing investment in training and supervision",
-              ]}
-            />
-          </div>
+            {draftEvents.length > 0 && (
+              <div
+                className="card-grid"
+                style={{
+                  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))"
+                }}
+              >
+                {draftEvents.map((event) => (
+                  <EventCard key={event.id} event={event} isDraft />
+                ))}
+              </div>
+            )}
+          </section>
         </section>
       </div>
     </main>
   );
 }
 
-function EventRow({ event }) {
-  const dateText = event.starts_at
-    ? new Date(event.starts_at).toLocaleString("en-CA", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : "Date TBA";
+/* ───────────────────────────
+   SMALL PRESENTATIONAL PIECES
+──────────────────────────── */
 
-  const admissionLabel =
-    event.admission_type === "first_come"
-      ? "First come, first served"
-      : event.admission_type === "controlled"
-      ? "Controlled / by approval"
-      : "Admission type TBA";
-
+function SummaryPill({ label, value, hint }) {
   return (
     <div
-      className="card-soft"
       style={{
-        padding: "0.6rem 0.75rem",
+        padding: "0.45rem 0.7rem",
+        borderRadius: "0.75rem",
+        border: "1px solid rgba(148,163,184,0.6)",
+        backgroundColor: "rgba(15,23,42,0.9)",
         display: "grid",
-        gap: "0.15rem",
+        gap: "0.1rem",
+        minWidth: "9rem"
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: "0.5rem",
-          flexWrap: "wrap",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "0.86rem",
-            fontWeight: 500,
-            color: "#f9fafb",
-          }}
-        >
-          {event.title || "Untitled event"}
-        </p>
-        {event.capacity !== null && (
-          <p
-            style={{
-              fontSize: "0.74rem",
-              color: "#a5b4fc",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Capacity: {event.capacity}
-          </p>
-        )}
-      </div>
-
       <p
         style={{
-          fontSize: "0.76rem",
-          color: "#cbd5f5",
+          fontSize: "0.72rem",
+          color: "#9ca3af"
         }}
       >
-        {dateText}
-        {event.location ? ` · ${event.location}` : ""}
-        {event.registration_slug
-          ? ` · Registration code: ${event.registration_slug}`
-          : ""}
+        {label}
       </p>
-
       <p
         style={{
-          fontSize: "0.74rem",
-          color: "#9ca3af",
+          fontSize: "0.98rem",
+          fontWeight: 500,
+          color: "#e5e7eb"
         }}
       >
-        {admissionLabel}
+        {value}
       </p>
-
-      {event.description && (
+      {hint && (
         <p
           style={{
-            fontSize: "0.75rem",
-            color: "#9ca3af",
-            marginTop: "0.15rem",
+            fontSize: "0.7rem",
+            color: "#6b7280"
           }}
         >
-          {event.description}
+          {hint}
         </p>
       )}
     </div>
   );
 }
 
-function PDCard({ label, title, body, bullets }) {
+function EventCard({ event, isDraft = false }) {
+  const dateText = event.date_start
+    ? new Date(event.date_start).toLocaleString("en-CA", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      })
+    : "Date to be announced";
+
+  const modeLabel = event.is_online ? "Online" : "In-person";
+  const locationLabel =
+    event.is_online && !event.location
+      ? "Online (link to be shared)"
+      : event.location || "Location to be announced";
+
+  const admissionLabel =
+    event.admission_type === "controlled"
+      ? "Controlled / invite-based"
+      : event.admission_type === "first_come"
+      ? "First-come, first-served"
+      : "Admission rules TBA";
+
+  const capacityLabel =
+    typeof event.capacity === "number" && event.capacity > 0
+      ? `${event.capacity} seats`
+      : "Capacity TBA";
+
   return (
     <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
       <p
@@ -370,48 +490,100 @@ function PDCard({ label, title, body, bullets }) {
           fontSize: "0.7rem",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: "#9ca3af",
-          marginBottom: "0.25rem",
+          color: isDraft ? "#fde68a" : "#9ca3af",
+          marginBottom: "0.25rem"
         }}
       >
-        {label}
+        {isDraft ? "Draft event" : "Published event"}
       </p>
       <h2
         style={{
-          fontSize: "0.9rem",
+          fontSize: "0.95rem",
           fontWeight: 500,
-          marginBottom: "0.3rem",
-          color: "#f9fafb",
+          marginBottom: "0.2rem",
+          color: "#f9fafb"
         }}
       >
-        {title}
+        {event.title || "Untitled event"}
       </h2>
       <p
         style={{
           fontSize: "0.78rem",
           color: "#cbd5f5",
           lineHeight: 1.5,
-          marginBottom: "0.45rem",
+          marginBottom: "0.35rem"
         }}
       >
-        {body}
+        {event.description || "Description forthcoming."}
       </p>
-      {bullets && bullets.length > 0 && (
-        <ul
+
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Date:</strong> {dateText}
+      </p>
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Mode:</strong> {modeLabel}
+      </p>
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Location:</strong> {locationLabel}
+      </p>
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Admission:</strong> {admissionLabel}
+      </p>
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "#9ca3af",
+          marginBottom: "0.2rem"
+        }}
+      >
+        <strong>Capacity:</strong> {capacityLabel}
+      </p>
+
+      {event.registration_slug && (
+        <p
           style={{
-            listStyle: "disc",
-            paddingLeft: "1.1rem",
-            margin: 0,
-            display: "grid",
-            gap: "0.15rem",
-            fontSize: "0.75rem",
-            color: "#9ca3af",
+            fontSize: "0.72rem",
+            color: "#6b7280",
+            marginTop: "0.25rem"
           }}
         >
-          {bullets.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+          Registration handle:{" "}
+          <code
+            style={{
+              fontSize: "0.7rem",
+              backgroundColor: "rgba(15,23,42,0.9)",
+              padding: "0.06rem 0.25rem",
+              borderRadius: "0.35rem",
+              border: "1px solid rgba(30,64,175,0.8)"
+            }}
+          >
+            {event.registration_slug}
+          </code>
+        </p>
       )}
     </div>
   );
