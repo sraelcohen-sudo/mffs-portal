@@ -1,73 +1,93 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 
-export default async function InternPDPage() {
-  const supabase = createSupabaseClient();
+export default function InternPDPage() {
+  const supabase = useMemo(() => createSupabaseClient(), []);
+  const [events, setEvents] = useState([]);
+  const [loadError, setLoadError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState(null);
+  const [submittedIds, setSubmittedIds] = useState(new Set());
 
   // ───────────────────────────
-  // SERVER ACTION: register interest in an event
+  // Load events from Supabase (client side)
   // ───────────────────────────
-  async function registerInterest(formData) {
-    "use server";
+  useEffect(() => {
+    async function fetchEvents() {
+      if (!supabase) {
+        setLoadError(
+          "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)."
+        );
+        setIsLoading(false);
+        return;
+      }
 
-    const eventId = formData.get("event_id");
-    if (!eventId || typeof eventId !== "string") {
-      console.error("No event_id provided to registerInterest");
-      return;
+      try {
+        const { data, error } = await supabase
+          .from("professional_development_events")
+          .select("*");
+
+        if (error) {
+          console.error("Error loading PD events for intern view:", error);
+
+          const msg = (error.message || "").toLowerCase();
+          const isMissingTable =
+            error.code === "42P01" ||
+            msg.includes("does not exist") ||
+            msg.includes("relation");
+
+          if (isMissingTable) {
+            // Table doesn’t exist yet in this project → behave as “no events” without red error
+            setEvents([]);
+            setLoadError(null);
+          } else {
+            setLoadError("Could not load professional development events.");
+          }
+        } else {
+          setEvents(Array.isArray(data) ? data : []);
+          setLoadError(null);
+        }
+      } catch (e) {
+        console.error("Unexpected error loading PD events for intern:", e);
+        setLoadError("Could not load professional development events.");
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    try {
-      const supabaseServer = createSupabaseClient();
+    fetchEvents();
+  }, [supabase]);
 
-      const { error } = await supabaseServer
-        .from("pd_interest")
-        .insert({ event_id: eventId });
+  // ───────────────────────────
+  // Click: Request a spot
+  // ───────────────────────────
+  const handleRequestSpot = async (eventId) => {
+    if (!supabase || !eventId) return;
+    if (submittingId === eventId) return; // debounce
+
+    setSubmittingId(eventId);
+
+    try {
+      const { error } = await supabase.from("pd_interest").insert({
+        event_id: eventId
+      });
 
       if (error) {
         console.error("Error inserting PD interest:", error);
-      }
-    } catch (e) {
-      console.error("Unexpected error in registerInterest:", e);
-    }
-  }
-
-  let events = [];
-  let loadError = null;
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from("professional_development_events")
-        .select("*");
-
-      if (error) {
-        console.error("Error loading PD events for intern view:", error);
-
-        const msg = (error.message || "").toLowerCase();
-        const isMissingTable =
-          error.code === "42P01" ||
-          msg.includes("does not exist") ||
-          msg.includes("relation");
-
-        // If the table is missing, just behave like "no events yet".
-        if (isMissingTable) {
-          events = [];
-          loadError = null;
-        } else {
-          loadError = "Could not load professional development events.";
-        }
       } else {
-        events = Array.isArray(data) ? data : [];
+        // Mark this event as “submitted” so the button can change state
+        setSubmittedIds((prev) => new Set(prev).add(eventId));
       }
     } catch (e) {
-      console.error("Unexpected error loading PD events for intern:", e);
-      loadError = "Could not load professional development events.";
+      console.error("Unexpected error inserting PD interest:", e);
+    } finally {
+      setSubmittingId(null);
     }
-  } else {
-    loadError =
-      "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
-  }
+  };
 
   // --------- Derived metrics ----------
   const now = new Date();
@@ -200,23 +220,35 @@ export default async function InternPDPage() {
             >
               <SummaryPill
                 label="Upcoming events"
-                value={`${upcomingEvents.length}`}
+                value={
+                  isLoading && !loadError
+                    ? "Loading..."
+                    : `${upcomingEvents.length}`
+                }
                 hint="Sessions with a future start date"
               />
               <SummaryPill
                 label="Past events"
-                value={`${pastEvents.length}`}
+                value={
+                  isLoading && !loadError ? "Loading..." : `${pastEvents.length}`
+                }
                 hint="Already delivered sessions"
               />
               <SummaryPill
                 label="Total PD offerings"
-                value={`${events.length}`}
+                value={
+                  isLoading && !loadError ? "Loading..." : `${events.length}`
+                }
                 hint="All events listed in the PD table"
               />
               <SummaryPill
                 label="Total capacity"
                 value={
-                  totalCapacity > 0 ? `${totalCapacity} seats` : "To be determined"
+                  isLoading && !loadError
+                    ? "Loading..."
+                    : totalCapacity > 0
+                    ? `${totalCapacity} seats`
+                    : "To be determined"
                 }
                 hint="Based on the capacity field on each event"
               />
@@ -243,6 +275,19 @@ export default async function InternPDPage() {
                 {loadError}
               </p>
             </section>
+          )}
+
+          {/* LOADING STATE (soft) */}
+          {isLoading && !loadError && (
+            <p
+              style={{
+                fontSize: "0.8rem",
+                color: "#9ca3af",
+                marginBottom: "0.8rem"
+              }}
+            >
+              Loading professional development events…
+            </p>
           )}
 
           {/* UPCOMING EVENTS */}
@@ -283,7 +328,7 @@ export default async function InternPDPage() {
               </p>
             </div>
 
-            {upcomingEvents.length === 0 && !loadError && (
+            {!isLoading && upcomingEvents.length === 0 && !loadError && (
               <p
                 style={{
                   fontSize: "0.78rem",
@@ -307,7 +352,9 @@ export default async function InternPDPage() {
                     key={event.id}
                     event={event}
                     isPast={false}
-                    registerInterest={registerInterest}
+                    submitting={submittingId === event.id}
+                    submitted={submittedIds.has(event.id)}
+                    onRequestSpot={() => handleRequestSpot(event.id)}
                   />
                 ))}
               </div>
@@ -350,7 +397,7 @@ export default async function InternPDPage() {
               </p>
             </div>
 
-            {pastEvents.length === 0 && !loadError && (
+            {!isLoading && pastEvents.length === 0 && !loadError && (
               <p
                 style={{
                   fontSize: "0.78rem",
@@ -373,7 +420,9 @@ export default async function InternPDPage() {
                     key={event.id}
                     event={event}
                     isPast={true}
-                    registerInterest={registerInterest}
+                    submitting={false}
+                    submitted={submittedIds.has(event.id)}
+                    onRequestSpot={null}
                   />
                 ))}
               </div>
@@ -433,7 +482,13 @@ function SummaryPill({ label, value, hint }) {
   );
 }
 
-function EventCard({ event, isPast = false, registerInterest }) {
+function EventCard({
+  event,
+  isPast = false,
+  submitting,
+  submitted,
+  onRequestSpot
+}) {
   const dateText = event.starts_at
     ? new Date(event.starts_at).toLocaleString("en-CA", {
         dateStyle: "medium",
@@ -459,6 +514,13 @@ function EventCard({ event, isPast = false, registerInterest }) {
       : null;
 
   const capacityLabel = cap && cap > 0 ? `${cap} seats` : "Capacity TBA";
+
+  const canClick = !!onRequestSpot && !isPast && !submitted && !submitting;
+
+  let buttonLabel = "Request a spot (demo)";
+  if (submitted) buttonLabel = "Interest recorded";
+  if (submitting) buttonLabel = "Sending…";
+  if (isPast) buttonLabel = "Completed session";
 
   return (
     <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
@@ -534,50 +596,28 @@ function EventCard({ event, isPast = false, registerInterest }) {
         <strong>Capacity:</strong> {capacityLabel}
       </p>
 
-      {/* Interest button wired to server action */}
-      {!isPast && (
-        <form
-          action={registerInterest}
-          style={{
-            marginTop: "0.4rem"
-          }}
-        >
-          <input type="hidden" name="event_id" value={event.id} />
-          <button
-            type="submit"
-            style={{
-              fontSize: "0.76rem",
-              padding: "0.35rem 0.7rem",
-              borderRadius: "999px",
-              border: "1px solid rgba(96,165,250,0.9)",
-              backgroundColor: "rgba(15,23,42,0.9)",
-              color: "#e5e7eb",
-              cursor: "pointer"
-            }}
-          >
-            Request a spot (demo)
-          </button>
-        </form>
-      )}
-
-      {isPast && (
-        <button
-          type="button"
-          style={{
-            marginTop: "0.35rem",
-            fontSize: "0.76rem",
-            padding: "0.35rem 0.7rem",
-            borderRadius: "999px",
-            border: "1px solid rgba(75,85,99,0.9)",
-            backgroundColor: "rgba(15,23,42,0.9)",
-            color: "#9ca3af",
-            cursor: "default",
-            opacity: 0.7
-          }}
-        >
-          Completed session
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={canClick ? onRequestSpot : undefined}
+        disabled={!canClick}
+        style={{
+          marginTop: "0.4rem",
+          fontSize: "0.76rem",
+          padding: "0.35rem 0.7rem",
+          borderRadius: "999px",
+          border: isPast
+            ? "1px solid rgba(75,85,99,0.9)"
+            : submitted
+            ? "1px solid rgba(52,211,153,0.9)"
+            : "1px solid rgba(96,165,250,0.9)",
+          backgroundColor: "rgba(15,23,42,0.9)",
+          color: submitted ? "#bbf7d0" : "#e5e7eb",
+          cursor: canClick ? "pointer" : "default",
+          opacity: isPast || submitted || submitting ? 0.8 : 1
+        }}
+      >
+        {buttonLabel}
+      </button>
     </div>
   );
 }
