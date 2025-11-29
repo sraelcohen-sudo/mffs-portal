@@ -5,6 +5,33 @@ import { createSupabaseClient } from "@/lib/supabaseClient";
 export default async function InternPDPage() {
   const supabase = createSupabaseClient();
 
+  // ───────────────────────────
+  // SERVER ACTION: register interest in an event
+  // ───────────────────────────
+  async function registerInterest(formData) {
+    "use server";
+
+    const eventId = formData.get("event_id");
+    if (!eventId || typeof eventId !== "string") {
+      console.error("No event_id provided to registerInterest");
+      return;
+    }
+
+    try {
+      const supabaseServer = createSupabaseClient();
+
+      const { error } = await supabaseServer
+        .from("pd_interest")
+        .insert({ event_id: eventId });
+
+      if (error) {
+        console.error("Error inserting PD interest:", error);
+      }
+    } catch (e) {
+      console.error("Unexpected error in registerInterest:", e);
+    }
+  }
+
   let events = [];
   let loadError = null;
 
@@ -45,7 +72,6 @@ export default async function InternPDPage() {
   // --------- Derived metrics ----------
   const now = new Date();
 
-  // In this schema, we treat ALL events as "live" offerings.
   const sortByStartsAt = (arr) =>
     [...arr].sort((a, b) => {
       const da = a.starts_at ? new Date(a.starts_at).getTime() : 0;
@@ -134,8 +160,8 @@ export default async function InternPDPage() {
               <h1 className="section-title">Professional development</h1>
               <p className="section-subtitle">
                 Upcoming trainings, workshops, and learning opportunities available to
-                interns through MFFS. You can use this as a planning tool alongside
-                supervision and your practicum goals.
+                interns through MFFS. Use this alongside supervision to plan intentional,
+                trauma-informed learning.
               </p>
             </div>
           </header>
@@ -277,7 +303,12 @@ export default async function InternPDPage() {
                 }}
               >
                 {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    isPast={false}
+                    registerInterest={registerInterest}
+                  />
                 ))}
               </div>
             )}
@@ -338,7 +369,12 @@ export default async function InternPDPage() {
                 }}
               >
                 {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} isPast />
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    isPast={true}
+                    registerInterest={registerInterest}
+                  />
                 ))}
               </div>
             )}
@@ -397,7 +433,7 @@ function SummaryPill({ label, value, hint }) {
   );
 }
 
-function EventCard({ event, isPast = false }) {
+function EventCard({ event, isPast = false, registerInterest }) {
   const dateText = event.starts_at
     ? new Date(event.starts_at).toLocaleString("en-CA", {
         dateStyle: "medium",
@@ -498,23 +534,50 @@ function EventCard({ event, isPast = false }) {
         <strong>Capacity:</strong> {capacityLabel}
       </p>
 
-      {/* Future: a real signup / interest button */}
-      <button
-        type="button"
-        style={{
-          marginTop: "0.35rem",
-          fontSize: "0.76rem",
-          padding: "0.35rem 0.7rem",
-          borderRadius: "999px",
-          border: "1px solid rgba(96,165,250,0.9)",
-          backgroundColor: "rgba(15,23,42,0.9)",
-          color: "#e5e7eb",
-          cursor: "default",
-          opacity: isPast ? 0.55 : 1
-        }}
-      >
-        {isPast ? "Completed session" : "Future feature: request a spot"}
-      </button>
+      {/* Interest button wired to server action */}
+      {!isPast && (
+        <form
+          action={registerInterest}
+          style={{
+            marginTop: "0.4rem"
+          }}
+        >
+          <input type="hidden" name="event_id" value={event.id} />
+          <button
+            type="submit"
+            style={{
+              fontSize: "0.76rem",
+              padding: "0.35rem 0.7rem",
+              borderRadius: "999px",
+              border: "1px solid rgba(96,165,250,0.9)",
+              backgroundColor: "rgba(15,23,42,0.9)",
+              color: "#e5e7eb",
+              cursor: "pointer"
+            }}
+          >
+            Request a spot (demo)
+          </button>
+        </form>
+      )}
+
+      {isPast && (
+        <button
+          type="button"
+          style={{
+            marginTop: "0.35rem",
+            fontSize: "0.76rem",
+            padding: "0.35rem 0.7rem",
+            borderRadius: "999px",
+            border: "1px solid rgba(75,85,99,0.9)",
+            backgroundColor: "rgba(15,23,42,0.9)",
+            color: "#9ca3af",
+            cursor: "default",
+            opacity: 0.7
+          }}
+        >
+          Completed session
+        </button>
+      )}
     </div>
   );
 }
