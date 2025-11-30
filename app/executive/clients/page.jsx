@@ -96,6 +96,25 @@ export default async function ExecutiveClientsPage() {
   );
   const unassignedClients = clientsWithStatus.filter((c) => !c.intern_id).length;
 
+  // Grant / characteristic breakdown
+  const characteristicCountsMap = new Map();
+  for (const c of clientsWithStatus) {
+    if (Array.isArray(c.characteristics)) {
+      for (const raw of c.characteristics) {
+        const label = typeof raw === "string" ? raw.trim() : "";
+        if (!label) continue;
+        const prev = characteristicCountsMap.get(label) || 0;
+        characteristicCountsMap.set(label, prev + 1);
+      }
+    }
+  }
+
+  const characteristicCounts = Array.from(
+    characteristicCountsMap.entries()
+  )
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
@@ -234,6 +253,110 @@ export default async function ExecutiveClientsPage() {
                 assignments.
               </p>
             )}
+          </section>
+
+          {/* Grant / characteristics breakdown */}
+          <section
+            style={{
+              marginBottom: "1.0rem",
+              padding: "0.8rem 1.0rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(148,163,184,0.45)",
+              backgroundColor: "rgba(15,23,42,1)",
+              display: "grid",
+              gap: "0.6rem"
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  fontSize: "0.74rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#e5e7eb",
+                  marginBottom: "0.25rem"
+                }}
+              >
+                Grant characteristics breakdown
+              </p>
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#cbd5f5",
+                  maxWidth: "40rem"
+                }}
+              >
+                Counts of clients tagged with each characteristic across the whole
+                program. This includes both the predefined checkboxes and any
+                comma-separated &quot;other&quot; values that executives enter on the
+                client form.
+              </p>
+            </div>
+
+            {characteristicCounts.length === 0 ? (
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#e5e7eb"
+                }}
+              >
+                No characteristics have been recorded yet. As you add clients and tag
+                them with grant-aligned categories, a breakdown will appear here.
+              </p>
+            ) : (
+              <div
+                style={{
+                  borderRadius: "0.75rem",
+                  border: "1px solid rgba(55,65,81,0.9)",
+                  backgroundColor: "rgba(15,23,42,1)",
+                  overflowX: "auto"
+                }}
+              >
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "0.78rem"
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        borderBottom: "1px solid rgba(55,65,81,0.9)",
+                        backgroundColor: "rgba(15,23,42,1)"
+                      }}
+                    >
+                      <th style={thStyle}>Characteristic</th>
+                      <th style={thStyle}>Client count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {characteristicCounts.map((row) => (
+                      <tr
+                        key={row.label}
+                        style={{
+                          borderBottom: "1px solid rgba(31,41,55,0.85)"
+                        }}
+                      >
+                        <td style={tdStyle}>{row.label}</td>
+                        <td style={tdStyle}>{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <p
+              style={{
+                fontSize: "0.74rem",
+                color: "#9ca3af",
+                maxWidth: "40rem"
+              }}
+            >
+              In a later phase, this can be extended to export CSVs (e.g., for quarterly
+              grant reports) or filtered by date range, intern, or site.
+            </p>
           </section>
 
           {/* Client list */}
