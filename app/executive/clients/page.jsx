@@ -1,8 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 import CreateClientPanel from "./CreateClientPanel";
 import WaitlistManager from "./WaitlistManager";
+import ClientRosterPanel from "./ClientRosterPanel";
 
 export default async function ExecutiveClientsPage() {
   const supabase = createSupabaseClient();
@@ -504,6 +507,9 @@ export default async function ExecutiveClientsPage() {
             initialWaitlisted={waitlistedClients}
             eligibleInterns={eligibleInterns}
           />
+
+          {/* Client roster & discharge */}
+          <ClientRosterPanel />
         </section>
       </div>
     </main>
