@@ -1,6 +1,7 @@
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
+import CreateInternPanel from "./CreateInternPanel";
 
 export default async function ExecutiveSupervisionPage() {
   const supabase = createSupabaseClient();
@@ -14,12 +15,14 @@ export default async function ExecutiveSupervisionPage() {
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
   } else {
     // ───────────────────────────
-    // 1) Load interns
+    // 1) Load interns (using your actual schema)
     // ───────────────────────────
     try {
       const { data, error } = await supabase
         .from("intern_profiles")
-        .select("id, full_name, email");
+        .select(
+          "id, full_name, pronouns, school, program, site, status, ready_for_clients, current_clients, supervision_focus"
+        );
 
       if (error) {
         console.error("Error loading intern_profiles for executive view:", error);
@@ -51,9 +54,7 @@ export default async function ExecutiveSupervisionPage() {
     try {
       const { data, error } = await supabase
         .from("supervision_sessions")
-        .select(
-          "intern_id, duration_minutes, is_counts_for_hours"
-        );
+        .select("intern_id, duration_minutes, is_counts_for_hours");
 
       if (error) {
         console.error(
@@ -120,7 +121,7 @@ export default async function ExecutiveSupervisionPage() {
           <Link href="/executive">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">Program</div>
+              <div className="sidebar-link-subtitle">Program</</div>
             </button>
           </Link>
 
@@ -153,16 +154,20 @@ export default async function ExecutiveSupervisionPage() {
               <RoleChip role="Executive" />
               <h1 className="section-title">Supervision & hours</h1>
               <p className="section-subtitle">
-                High-level visibility into how much supervision each intern is receiving,
-                and a way to drill down into the actual log for any intern.
+                High-level visibility into how much supervision each intern is
+                receiving, plus a way to add new interns and drill down into individual
+                logs.
               </p>
             </div>
           </header>
 
+          {/* NEW: Add intern panel */}
+          <CreateInternPanel />
+
           {/* SUMMARY TILE */}
           <section
             style={{
-              marginTop: "0.7rem",
+              marginTop: "0.3rem",
               marginBottom: "1.0rem",
               padding: "0.7rem 0.9rem",
               borderRadius: "0.9rem",
@@ -251,9 +256,10 @@ export default async function ExecutiveSupervisionPage() {
                   maxWidth: "40rem"
                 }}
               >
-                Each card shows a quick summary of supervision coverage by intern. Click
-                &quot;View supervision log&quot; to see the detailed record of sessions
-                for that intern (dates, minutes, supervisor, notes).
+                Each card shows supervision coverage by intern, including status,
+                readiness for clients, and a quick hours summary. Click &quot;View
+                supervision log&quot; for the detailed record of sessions for that
+                intern.
               </p>
             </div>
 
@@ -264,19 +270,8 @@ export default async function ExecutiveSupervisionPage() {
                   color: "#e5e7eb"
                 }}
               >
-                No interns have been added yet. Once rows exist in{" "}
-                <code
-                  style={{
-                    fontSize: "0.74rem",
-                    backgroundColor: "rgba(15,23,42,0.9)",
-                    padding: "0.06rem 0.25rem",
-                    borderRadius: "0.35rem",
-                    border: "1px solid rgba(30,64,175,0.8)"
-                  }}
-                >
-                  intern_profiles
-                </code>
-                , they will appear here automatically.
+                No interns have been added yet. Use the &quot;Add intern&quot; panel
+                above to create your first few intern profiles.
               </p>
             )}
 
@@ -284,7 +279,7 @@ export default async function ExecutiveSupervisionPage() {
               <div
                 className="card-grid"
                 style={{
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))"
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))"
                 }}
               >
                 {interns.map((intern) => {
@@ -364,6 +359,21 @@ function SummaryPill({ label, value, hint }) {
   );
 }
 
+function statusColour(status) {
+  switch (status) {
+    case "active":
+      return { border: "1px solid rgba(52,211,153,0.7)", color: "#bbf7d0" };
+    case "waitlisted":
+      return { border: "1px solid rgba(251,191,36,0.7)", color: "#fef3c7" };
+    case "on_break":
+      return { border: "1px solid rgba(59,130,246,0.7)", color: "#bfdbfe" };
+    case "completed":
+      return { border: "1px solid rgba(148,163,184,0.7)", color: "#e5e7eb" };
+    default:
+      return { border: "1px solid rgba(148,163,184,0.6)", color: "#e5e7eb" };
+  }
+}
+
 function InternCard({ intern, totalHours, countedHours, sessionCount }) {
   const hoursLabel =
     countedHours > 0
@@ -375,19 +385,49 @@ function InternCard({ intern, totalHours, countedHours, sessionCount }) {
       ? `${totalHours.toFixed(1)} hrs total (including non-counted)`
       : null;
 
+  const status = intern.status || "active";
+  const statusStyle = statusColour(status);
+
+  const readyLabel = intern.ready_for_clients ? "Ready for clients" : "Not yet ready";
+
+  const clientsLabel =
+    intern.current_clients != null
+      ? `${intern.current_clients} current clients`
+      : "No caseload recorded";
+
   return (
     <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
-      <p
+      <div
         style={{
-          fontSize: "0.7rem",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "#9ca3af",
-          marginBottom: "0.25rem"
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "0.4rem",
+          marginBottom: "0.3rem"
         }}
       >
-        Intern
-      </p>
+        <p
+          style={{
+            fontSize: "0.7rem",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#9ca3af"
+          }}
+        >
+          Intern
+        </p>
+        <span
+          style={{
+            fontSize: "0.7rem",
+            padding: "0.1rem 0.45rem",
+            borderRadius: "999px",
+            ...statusStyle,
+            backgroundColor: "rgba(15,23,42,0.9)"
+          }}
+        >
+          {status.replace("_", " ")}
+        </span>
+      </div>
+
       <h2
         style={{
           fontSize: "0.95rem",
@@ -398,7 +438,8 @@ function InternCard({ intern, totalHours, countedHours, sessionCount }) {
       >
         {intern.full_name || "Unnamed intern"}
       </h2>
-      {intern.email && (
+
+      {(intern.pronouns || intern.school || intern.program || intern.site) && (
         <p
           style={{
             fontSize: "0.75rem",
@@ -406,7 +447,10 @@ function InternCard({ intern, totalHours, countedHours, sessionCount }) {
             marginBottom: "0.3rem"
           }}
         >
-          {intern.email}
+          {intern.pronouns && <span>{intern.pronouns} • </span>}
+          {intern.school && <span>{intern.school}</span>}
+          {intern.program && <span>{intern.school ? " — " : ""}{intern.program}</span>}
+          {intern.site && <span>{(intern.school || intern.program) ? " • " : ""}{intern.site}</span>}
         </p>
       )}
 
@@ -429,6 +473,38 @@ function InternCard({ intern, totalHours, countedHours, sessionCount }) {
           }}
         >
           {allHoursLabel}
+        </p>
+      )}
+
+      <p
+        style={{
+          fontSize: "0.74rem",
+          color: intern.ready_for_clients ? "#bbf7d0" : "#fecaca",
+          marginBottom: "0.1rem"
+        }}
+      >
+        {readyLabel}
+      </p>
+
+      <p
+        style={{
+          fontSize: "0.74rem",
+          color: "#9ca3af",
+          marginBottom: "0.3rem"
+        }}
+      >
+        {clientsLabel}
+      </p>
+
+      {intern.supervision_focus && (
+        <p
+          style={{
+            fontSize: "0.74rem",
+            color: "#cbd5f5",
+            marginBottom: "0.4rem"
+          }}
+        >
+          <strong>Focus:</strong> {intern.supervision_focus}
         </p>
       )}
 
