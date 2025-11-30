@@ -7,10 +7,12 @@ export default function WaitlistManager({ initialWaitlisted, eligibleInterns }) 
   const supabase = useMemo(() => createSupabaseClient(), []);
 
   const [rows, setRows] = useState(
-    (initialWaitlisted || []).map((c) => ({
-      ...c,
-      selectedInternId: c.intern_id || ""
-    }))
+    Array.isArray(initialWaitlisted)
+      ? initialWaitlisted.map((c) => ({
+          ...c,
+          selectedInternId: c.intern_id || ""
+        }))
+      : []
   );
   const [statusMessage, setStatusMessage] = useState("");
   const [statusTone, setStatusTone] = useState("neutral");
@@ -79,9 +81,7 @@ export default function WaitlistManager({ initialWaitlisted, eligibleInterns }) 
     }
   };
 
-  if (!rows || rows.length === 0) {
-    return null;
-  }
+  const hasRows = rows && rows.length > 0;
 
   return (
     <section
@@ -118,6 +118,16 @@ export default function WaitlistManager({ initialWaitlisted, eligibleInterns }) 
           available, assign the file and this tool will update them to active. For now,
           refresh the page after assigning to see the updated counts and lists.
         </p>
+        <p
+          style={{
+            marginTop: "0.2rem",
+            fontSize: "0.72rem",
+            color: "#9ca3af"
+          }}
+        >
+          Currently detected waitlisted clients:{" "}
+          <strong>{rows ? rows.length : 0}</strong>
+        </p>
       </div>
 
       {statusMessage && (
@@ -136,118 +146,134 @@ export default function WaitlistManager({ initialWaitlisted, eligibleInterns }) 
         </p>
       )}
 
-      <div
-        style={{
-          borderRadius: "0.75rem",
-          border: "1px solid rgba(55,65,81,0.9)",
-          backgroundColor: "rgba(15,23,42,1)",
-          overflowX: "auto"
-        }}
-      >
-        <table
+      {!hasRows && (
+        <p
           style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "0.78rem"
+            fontSize: "0.78rem",
+            color: "#e5e7eb"
           }}
         >
-          <thead>
-            <tr
-              style={{
-                borderBottom: "1px solid rgba(55,65,81,0.9)",
-                backgroundColor: "rgba(15,23,42,1)"
-              }}
-            >
-              <th style={thStyle}>OWL ID</th>
-              <th style={thStyle}>Characteristics</th>
-              <th style={thStyle}>Referral source</th>
-              <th style={thStyle}>Notes</th>
-              <th style={thStyle}>Assign intern</th>
-              <th style={thStyle}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((c) => {
-              const characteristics =
-                Array.isArray(c.characteristics) && c.characteristics.length > 0
-                  ? c.characteristics.join(", ")
-                  : "—";
+          No clients are currently marked as{" "}
+          <span style={{ fontStyle: "italic" }}>&quot;waitlisted&quot;</span>. New
+          entries with status set to waitlisted will appear here automatically.
+        </p>
+      )}
 
-              const notesShort =
-                c.notes && c.notes.length > 120
-                  ? c.notes.slice(0, 117) + "…"
-                  : c.notes || "—";
+      {hasRows && (
+        <div
+          style={{
+            borderRadius: "0.75rem",
+            border: "1px solid rgba(55,65,81,0.9)",
+            backgroundColor: "rgba(15,23,42,1)",
+            overflowX: "auto"
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "0.78rem"
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  borderBottom: "1px solid rgba(55,65,81,0.9)",
+                  backgroundColor: "rgba(15,23,42,1)"
+                }}
+              >
+                <th style={thStyle}>OWL ID</th>
+                <th style={thStyle}>Characteristics</th>
+                <th style={thStyle}>Referral source</th>
+                <th style={thStyle}>Notes</th>
+                <th style={thStyle}>Assign intern</th>
+                <th style={thStyle}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((c) => {
+                const characteristics =
+                  Array.isArray(c.characteristics) &&
+                  c.characteristics.length > 0
+                    ? c.characteristics.join(", ")
+                    : "—";
 
-              const referral = c.referral_source || "—";
+                const notesShort =
+                  c.notes && c.notes.length > 120
+                    ? c.notes.slice(0, 117) + "…"
+                    : c.notes || "—";
 
-              return (
-                <tr
-                  key={c.id}
-                  style={{
-                    borderBottom: "1px solid rgba(31,41,55,0.85)"
-                  }}
-                >
-                  <td style={tdStyle}>{c.full_name}</td>
-                  <td style={tdStyle}>{characteristics}</td>
-                  <td style={tdStyle}>{referral}</td>
-                  <td style={tdStyle}>{notesShort}</td>
-                  <td style={tdStyle}>
-                    <select
-                      value={c.selectedInternId}
-                      onChange={(e) =>
-                        handleChangeIntern(c.id, e.target.value || "")
-                      }
-                      style={{
-                        fontSize: "0.78rem",
-                        padding: "0.28rem 0.5rem",
-                        borderRadius: "999px",
-                        border: "1px solid rgba(75,85,99,0.9)",
-                        backgroundColor: "rgba(15,23,42,1)",
-                        color: "#e5e7eb"
-                      }}
-                    >
-                      <option value="">Select intern</option>
-                      {eligibleInterns.length === 0 && (
-                        <option>No interns eligible yet</option>
-                      )}
-                      {eligibleInterns.map((intern) => (
-                        <option key={intern.id} value={intern.id}>
-                          {intern.full_name || "Unnamed intern"}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td style={tdStyle}>
-                    <button
-                      type="button"
-                      disabled={submittingId === c.id}
-                      onClick={() => handleAssign(c.id)}
-                      style={{
-                        fontSize: "0.76rem",
-                        padding: "0.3rem 0.7rem",
-                        borderRadius: "999px",
-                        border: "1px solid rgba(129,140,248,0.9)",
-                        backgroundColor:
-                          submittingId === c.id
-                            ? "rgba(30,64,175,0.7)"
-                            : "rgba(15,23,42,0.95)",
-                        color: "#e5e7eb",
-                        cursor:
-                          submittingId === c.id ? "default" : "pointer",
-                        opacity: submittingId === c.id ? 0.9 : 1
-                      }}
-                    >
-                      {submittingId === c.id
-                        ? "Assigning…"
-                        : "Assign & activate"}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                const referral = c.referral_source || "—";
+
+                return (
+                  <tr
+                    key={c.id}
+                    style={{
+                      borderBottom: "1px solid rgba(31,41,55,0.85)"
+                    }}
+                  >
+                    <td style={tdStyle}>{c.full_name}</td>
+                    <td style={tdStyle}>{characteristics}</td>
+                    <td style={tdStyle}>{referral}</td>
+                    <td style={tdStyle}>{notesShort}</td>
+                    <td style={tdStyle}>
+                      <select
+                        value={c.selectedInternId}
+                        onChange={(e) =>
+                          handleChangeIntern(c.id, e.target.value || "")
+                        }
+                        style={{
+                          fontSize: "0.78rem",
+                          padding: "0.28rem 0.5rem",
+                          borderRadius: "999px",
+                          border: "1px solid rgba(75,85,99,0.9)",
+                          backgroundColor: "rgba(15,23,42,1)",
+                          color: "#e5e7eb"
+                        }}
+                      >
+                        <option value="">Select intern</option>
+                        {eligibleInterns.length === 0 && (
+                          <option>No interns eligible yet</option>
+                        )}
+                        {eligibleInterns.map((intern) => (
+                          <option key={intern.id} value={intern.id}>
+                            {intern.full_name || "Unnamed intern"}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={tdStyle}>
+                      <button
+                        type="button"
+                        disabled={submittingId === c.id}
+                        onClick={() => handleAssign(c.id)}
+                        style={{
+                          fontSize: "0.76rem",
+                          padding: "0.3rem 0.7rem",
+                          borderRadius: "999px",
+                          border: "1px solid rgba(129,140,248,0.9)",
+                          backgroundColor:
+                            submittingId === c.id
+                              ? "rgba(30,64,175,0.7)"
+                              : "rgba(15,23,42,0.95)",
+                          color: "#e5e7eb",
+                          cursor:
+                            submittingId === c.id ? "default" : "pointer",
+                          opacity: submittingId === c.id ? 0.9 : 1
+                        }}
+                      >
+                        {submittingId === c.id
+                          ? "Assigning…"
+                          : "Assign & activate"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

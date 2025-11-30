@@ -80,13 +80,21 @@ export default async function ExecutiveClientsPage() {
     (i) => i.ready_for_clients === true && i.status === "active"
   );
 
+  // Normalize statuses once
+  const clientsWithStatus = clients.map((c) => ({
+    ...c,
+    _statusNorm: (c.status || "").toLowerCase()
+  }));
+
   // Derived stats
-  const totalClients = clients.length;
-  const activeClients = clients.filter((c) => c.status === "active").length;
-  const waitlistedClients = clients.filter(
-    (c) => c.status === "waitlisted"
+  const totalClients = clientsWithStatus.length;
+  const activeClients = clientsWithStatus.filter(
+    (c) => c._statusNorm === "active"
+  ).length;
+  const waitlistedClients = clientsWithStatus.filter(
+    (c) => c._statusNorm === "waitlisted"
   );
-  const unassignedClients = clients.filter((c) => !c.intern_id).length;
+  const unassignedClients = clientsWithStatus.filter((c) => !c.intern_id).length;
 
   return (
     <main className="main-shell">
@@ -264,7 +272,7 @@ export default async function ExecutiveClientsPage() {
               </p>
             </div>
 
-            {clients.length === 0 && !loadError && (
+            {clientsWithStatus.length === 0 && !loadError && (
               <p
                 style={{
                   fontSize: "0.78rem",
@@ -276,7 +284,7 @@ export default async function ExecutiveClientsPage() {
               </p>
             )}
 
-            {clients.length > 0 && (
+            {clientsWithStatus.length > 0 && (
               <div
                 style={{
                   borderRadius: "0.75rem",
@@ -309,7 +317,7 @@ export default async function ExecutiveClientsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {clients.map((c) => {
+                    {clientsWithStatus.map((c) => {
                       const internInfo = c.intern_id
                         ? internMap.get(c.intern_id)
                         : null;
@@ -328,7 +336,7 @@ export default async function ExecutiveClientsPage() {
                           })
                         : "—";
 
-                      const statusLabel = (c.status || "active").toLowerCase();
+                      const statusLabel = c._statusNorm || "active";
 
                       const notesShort =
                         c.notes && c.notes.length > 120
