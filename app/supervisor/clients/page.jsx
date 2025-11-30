@@ -1,7 +1,6 @@
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
-import CreateClientPanel from "./CreateClientPanel";
 
 export default async function SupervisorClientsPage() {
   const supabase = createSupabaseClient();
@@ -123,20 +122,17 @@ export default async function SupervisorClientsPage() {
               <RoleChip role="Supervisor" />
               <h1 className="section-title">Clients & assignments</h1>
               <p className="section-subtitle">
-                A simple view of all clients in the system, who they&apos;re assigned
-                to, and a quick way to add new clients or adjust assignments in this
-                prototype.
+                Read-only view of clients in the system and which intern they&apos;re
+                currently assigned to. New clients and structural changes are managed
+                by the Executive portal.
               </p>
             </div>
           </header>
 
-          {/* Add client panel */}
-          <CreateClientPanel />
-
-          {/* Summary tile */}
+          {/* Summary tile (read-only) */}
           <section
             style={{
-              marginTop: "0.3rem",
+              marginTop: "0.5rem",
               marginBottom: "1.0rem",
               padding: "0.7rem 0.9rem",
               borderRadius: "0.9rem",
@@ -155,7 +151,7 @@ export default async function SupervisorClientsPage() {
                 color: "#9ca3af"
               }}
             >
-              Client snapshot (prototype)
+              Client snapshot
             </p>
 
             <div
@@ -193,6 +189,21 @@ export default async function SupervisorClientsPage() {
                 {loadError}
               </p>
             )}
+
+            {!loadError && (
+              <p
+                style={{
+                  marginTop: "0.25rem",
+                  fontSize: "0.75rem",
+                  color: "#9ca3af",
+                  maxWidth: "40rem"
+                }}
+              >
+                This view is intentionally read-only. Structural changes (creating
+                clients, assigning them to interns, closing files) are handled by the
+                Executive portal in this prototype.
+              </p>
+            )}
           </section>
 
           {/* Client list */}
@@ -216,7 +227,7 @@ export default async function SupervisorClientsPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Client list
+                Client list (read-only)
               </p>
               <p
                 style={{
@@ -225,9 +236,9 @@ export default async function SupervisorClientsPage() {
                   maxWidth: "40rem"
                 }}
               >
-                This prototype keeps client details deliberately lightweight — name,
-                status, referral source, notes, and which intern they&apos;re attached
-                to. Later, this could evolve into full intake + consent workflows.
+                Supervisors can see who is on their interns&apos; caseloads at a
+                glance, including status and a short internal note. Future phases could
+                allow reassignment requests or alerts when caseloads become too heavy.
               </p>
             </div>
 
@@ -238,8 +249,8 @@ export default async function SupervisorClientsPage() {
                   color: "#e5e7eb"
                 }}
               >
-                No clients in the system yet. Use the &quot;Add client&quot; panel above
-                to create your first client.
+                No clients in the system yet. Clients are created and assigned from the
+                Executive portal.
               </p>
             )}
 
