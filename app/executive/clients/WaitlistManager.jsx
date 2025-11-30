@@ -65,9 +65,12 @@ export default function WaitlistManager({ initialWaitlisted, eligibleInterns }) 
             "Could not assign client. Please check policies / console logs."
         );
       } else {
+        // ✅ Optimistically remove this client from the local waitlist
+        setRows((prev) => prev.filter((r) => r.id !== clientId));
+
         setStatusTone("success");
         setStatusMessage(
-          "Client assigned and marked active. Refresh the page to see updated stats and tables."
+          "Client assigned and marked active. They’ve been removed from the waitlist here. Refresh the page to see updated counts in the snapshot above."
         );
       }
     } catch (e) {
@@ -116,7 +119,8 @@ export default function WaitlistManager({ initialWaitlisted, eligibleInterns }) 
         >
           These clients are currently marked as waitlisted. When an intern becomes
           available, assign the file and this tool will update them to active. For now,
-          refresh the page after assigning to see the updated counts and lists.
+          refresh the page after assigning to see the updated counts and lists in the
+          sections above.
         </p>
         <p
           style={{
