@@ -30,7 +30,8 @@ export default function CreateClientPanel() {
     intern_id: "",
     referral_source: "",
     notes: "",
-    characteristics: []
+    characteristics: [],
+    extraCharacteristics: "" // NEW: free-text field
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -126,6 +127,20 @@ export default function CreateClientPanel() {
     setStatusTone("neutral");
 
     try {
+      // Parse extra characteristics (comma-separated, trimmed, no empties)
+      const extraCharsRaw = form.extraCharacteristics || "";
+      const extraList = extraCharsRaw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+      // Combine checkbox values + extra values, dedupe via Set
+      const combined = [
+        ...(form.characteristics || []),
+        ...extraList
+      ];
+      const uniqueCombined = Array.from(new Set(combined));
+
       const payload = {
         // full_name is used as the OWL Practice ID (no actual name in this prototype)
         full_name: form.full_name.trim(),
@@ -136,9 +151,7 @@ export default function CreateClientPanel() {
         referral_source: form.referral_source.trim() || null,
         notes: form.notes.trim() || null,
         characteristics:
-          form.characteristics && form.characteristics.length > 0
-            ? form.characteristics
-            : null
+          uniqueCombined && uniqueCombined.length > 0 ? uniqueCombined : null
       };
 
       const { error } = await supabase.from("clients").insert(payload);
@@ -161,7 +174,8 @@ export default function CreateClientPanel() {
           intern_id: "",
           referral_source: "",
           notes: "",
-          characteristics: []
+          characteristics: [],
+          extraCharacteristics: ""
         });
       }
     } catch (err) {
@@ -209,7 +223,8 @@ export default function CreateClientPanel() {
         In this prototype, clients are identified only by their{" "}
         <strong>OWL Practice Unique ID</strong>, not by name. You can mark them as
         waitlisted or active, attach them to an eligible intern, and tag grant-related
-        characteristics (e.g., LGBTQ2S+, Aboriginal / Indigenous).
+        characteristics (e.g., LGBTQ2S+, Aboriginal / Indigenous). Any additional
+        categories can be added in the free-text field.
       </p>
 
       <form
@@ -313,6 +328,7 @@ export default function CreateClientPanel() {
             grant language (e.g., LGBTQ2S+, Aboriginal / Indigenous). No names are
             stored in this system.
           </p>
+          {/* Checkbox set */}
           <div
             style={{
               display: "flex",
@@ -358,6 +374,30 @@ export default function CreateClientPanel() {
                 </label>
               );
             })}
+          </div>
+
+          {/* Free-text extras */}
+          <div style={{ display: "grid", gap: "0.18rem", marginTop: "0.4rem" }}>
+            <label style={{ color: "#e5e7eb" }}>
+              Other characteristics (comma-separated, optional)
+            </label>
+            <input
+              type="text"
+              value={form.extraCharacteristics}
+              onChange={handleChange("extraCharacteristics")}
+              placeholder="e.g., newcomer, francophone, survivor of violence"
+              style={inputStyle}
+            />
+            <p
+              style={{
+                fontSize: "0.7rem",
+                color: "#9ca3af",
+                maxWidth: "40rem"
+              }}
+            >
+              You can enter multiple values separated by commas. These will be stored
+              along with the checkboxes above in the same characteristics field.
+            </p>
           </div>
         </div>
 
