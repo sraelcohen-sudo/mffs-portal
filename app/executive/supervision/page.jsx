@@ -121,7 +121,7 @@ export default async function ExecutiveSupervisionPage() {
           <Link href="/executive">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">Program</</div>
+              <div className="sidebar-link-subtitle">Program</div>
             </button>
           </Link>
 
@@ -449,8 +449,15 @@ function InternCard({ intern, totalHours, countedHours, sessionCount }) {
         >
           {intern.pronouns && <span>{intern.pronouns} • </span>}
           {intern.school && <span>{intern.school}</span>}
-          {intern.program && <span>{intern.school ? " — " : ""}{intern.program}</span>}
-          {intern.site && <span>{(intern.school || intern.program) ? " • " : ""}{intern.site}</span>}
+          {intern.program && (
+            <span>{intern.school ? " — " : ""}{intern.program}</span>
+          )}
+          {intern.site && (
+            <span>
+              {(intern.school || intern.program) ? " • " : ""}
+              {intern.site}
+            </span>
+          )}
         </p>
       )}
 
