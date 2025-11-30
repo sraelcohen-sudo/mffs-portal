@@ -3,22 +3,60 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
-import InternReadinessPanel from "./InternReadinessPanel";
-import SupervisorAssignmentsPanel from "./SupervisorAssignmentsPanel";
-// import CreateInternPanel from "./CreateInternPanel"; // uncomment if you’re using this
 
-export default async function ExecutiveSupervisionPage() {
+export default async function SupervisorDashboard() {
   const supabase = createSupabaseClient();
 
+  let supervisors = [];
   let interns = [];
-  let supervisionSessions = [];
+  let links = [];
+  let sessions = [];
+  let clients = [];
   let loadError = null;
 
   if (!supabase) {
     loadError =
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
   } else {
-    // 1) Load intern profiles
+    /* ───────────────────────────
+       1) Load supervisors
+    ─────────────────────────── */
+    try {
+      const { data, error } = await supabase
+        .from("supervisors")
+        .select("id, full_name, email, role, created_at")
+        .order("full_name", { ascending: true });
+
+      if (error) {
+        console.error("Error loading supervisors (supervisor dashboard):", error);
+        const msg = (error.message || "").toLowerCase();
+        const isMissingTable =
+          error.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
+
+        if (isMissingTable) {
+          supervisors = [];
+          // no hard error; just means not configured yet
+        } else {
+          supervisors = [];
+          loadError = "Could not load supervisors from Supabase.";
+        }
+      } else {
+        supervisors = Array.isArray(data) ? data : [];
+      }
+    } catch (e) {
+      console.error(
+        "Unexpected error loading supervisors (supervisor dashboard):",
+        e
+      );
+      supervisors = [];
+      loadError = "Could not load supervisors from Supabase.";
+    }
+
+    /* ───────────────────────────
+       2) Load intern profiles
+    ─────────────────────────── */
     try {
       const { data, error } = await supabase
         .from("intern_profiles")
@@ -29,7 +67,7 @@ export default async function ExecutiveSupervisionPage() {
 
       if (error) {
         console.error(
-          "Error loading intern_profiles (executive supervision):",
+          "Error loading intern_profiles (supervisor dashboard):",
           error
         );
         const msg = (error.message || "").toLowerCase();
@@ -40,24 +78,69 @@ export default async function ExecutiveSupervisionPage() {
 
         if (isMissingTable) {
           interns = [];
-          loadError = null;
         } else {
           interns = [];
-          loadError = "Could not load intern profiles from Supabase.";
+          loadError =
+            loadError || "Could not load intern profiles from Supabase.";
         }
       } else {
         interns = Array.isArray(data) ? data : [];
       }
     } catch (e) {
       console.error(
-        "Unexpected error loading intern_profiles (executive supervision):",
+        "Unexpected error loading intern_profiles (supervisor dashboard):",
         e
       );
       interns = [];
-      loadError = "Could not load intern profiles from Supabase.";
+      loadError =
+        loadError || "Could not load intern profiles from Supabase.";
     }
 
-    // 2) Load supervision sessions for hours summary
+    /* ───────────────────────────
+       3) Load supervisor_intern links
+    ─────────────────────────── */
+    try {
+      const { data, error } = await supabase
+        .from("supervisor_interns")
+        .select("id, supervisor_id, intern_id, relationship, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(
+          "Error loading supervisor_interns (supervisor dashboard):",
+          error
+        );
+        const msg = (error.message || "").toLowerCase();
+        const isMissingTable =
+          error.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
+
+        if (isMissingTable) {
+          links = [];
+        } else {
+          links = [];
+          loadError =
+            loadError ||
+            "Could not load supervisor/intern assignments from Supabase.";
+        }
+      } else {
+        links = Array.isArray(data) ? data : [];
+      }
+    } catch (e) {
+      console.error(
+        "Unexpected error loading supervisor_interns (supervisor dashboard):",
+        e
+      );
+      links = [];
+      loadError =
+        loadError ||
+        "Could not load supervisor/intern assignments from Supabase.";
+    }
+
+    /* ───────────────────────────
+       4) Load supervision sessions
+    ─────────────────────────── */
     try {
       const { data, error } = await supabase
         .from("supervision_sessions")
@@ -65,7 +148,7 @@ export default async function ExecutiveSupervisionPage() {
 
       if (error) {
         console.error(
-          "Error loading supervision_sessions (executive supervision):",
+          "Error loading supervision_sessions (supervisor dashboard):",
           error
         );
         const msg = (error.message || "").toLowerCase();
@@ -75,75 +158,140 @@ export default async function ExecutiveSupervisionPage() {
           msg.includes("relation");
 
         if (isMissingTable) {
-          supervisionSessions = [];
+          sessions = [];
         } else {
-          supervisionSessions = [];
+          sessions = [];
           loadError =
-            loadError || "Could not load supervision sessions from Supabase.";
+            loadError ||
+            "Could not load supervision sessions from Supabase.";
         }
       } else {
-        supervisionSessions = Array.isArray(data) ? data : [];
+        sessions = Array.isArray(data) ? data : [];
       }
     } catch (e) {
       console.error(
-        "Unexpected error loading supervision_sessions (executive supervision):",
+        "Unexpected error loading supervision_sessions (supervisor dashboard):",
         e
       );
-      supervisionSessions = [];
+      sessions = [];
       loadError =
-        loadError || "Could not load supervision sessions from Supabase.";
+        loadError ||
+        "Could not load supervision sessions from Supabase.";
+    }
+
+    /* ───────────────────────────
+       5) Load clients (for caseload)
+    ─────────────────────────── */
+    try {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, intern_id, status");
+
+      if (error) {
+        console.error("Error loading clients (supervisor dashboard):", error);
+        const msg = (error.message || "").toLowerCase();
+        const isMissingTable =
+          error.code === "42P01" ||
+          msg.includes("does not exist") ||
+          msg.includes("relation");
+
+        if (isMissingTable) {
+          clients = [];
+        } else {
+          clients = [];
+          loadError =
+            loadError || "Could not load clients from Supabase.";
+        }
+      } else {
+        clients = Array.isArray(data) ? data : [];
+      }
+    } catch (e) {
+      console.error(
+        "Unexpected error loading clients (supervisor dashboard):",
+        e
+      );
+      clients = [];
+      loadError =
+        loadError || "Could not load clients from Supabase.";
     }
   }
 
-  // Hours summary per intern
+  /* ───────────────────────────
+     Derived structures
+  ─────────────────────────── */
+
+  const internMap = new Map(interns.map((i) => [i.id, i]));
+
+  // Hours per intern
   const hoursByIntern = new Map();
-  for (const s of supervisionSessions) {
+  for (const s of sessions) {
     if (!s.intern_id) continue;
     const prev = hoursByIntern.get(s.intern_id) || 0;
     const hours = typeof s.duration_hours === "number" ? s.duration_hours : 0;
     hoursByIntern.set(s.intern_id, prev + hours);
   }
 
-  const totalInterns = interns.length;
-  const activeInterns = interns.filter((i) => i.status === "active").length;
-  const readyInterns = interns.filter(
-    (i) => i.status === "active" && i.ready_for_clients === true
-  ).length;
-  const totalHours = Array.from(hoursByIntern.values()).reduce(
-    (sum, h) => sum + h,
-    0
-  );
+  // Active clients per intern
+  const activeClientsByIntern = new Map();
+  for (const c of clients) {
+    if (!c.intern_id) continue;
+    const statusNorm = (c.status || "").toLowerCase();
+    if (statusNorm !== "active") continue;
+    const prev = activeClientsByIntern.get(c.intern_id) || 0;
+    activeClientsByIntern.set(c.intern_id, prev + 1);
+  }
+
+  // Group links by supervisor
+  const linksBySupervisor = new Map();
+  for (const link of links) {
+    if (!linksBySupervisor.has(link.supervisor_id)) {
+      linksBySupervisor.set(link.supervisor_id, []);
+    }
+    linksBySupervisor.get(link.supervisor_id).push(link);
+  }
+
+  const totalSupervisors = supervisors.length;
+
+  // Totals for snapshot
+  let totalLinkedInterns = 0;
+  let totalHoursAll = 0;
+  let totalActiveClientsAll = 0;
+
+  for (const sup of supervisors) {
+    const supLinks = linksBySupervisor.get(sup.id) || [];
+    totalLinkedInterns += supLinks.length;
+
+    for (const link of supLinks) {
+      const h = hoursByIntern.get(link.intern_id) || 0;
+      totalHoursAll += h;
+      const count = activeClientsByIntern.get(link.intern_id) || 0;
+      totalActiveClientsAll += count;
+    }
+  }
 
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
         {/* SIDEBAR */}
         <aside className="sidebar">
-          <p className="sidebar-title">Executive portal</p>
-
-          <Link href="/executive">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">Program</div>
-            </button>
-          </Link>
+          <p className="sidebar-title">Supervisor portal</p>
 
           <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Supervision</div>
-            <div className="sidebar-link-subtitle">Hours & coverage</div>
+            <div className="sidebar-link-title">Overview</div>
+            <div className="sidebar-link-subtitle">Your interns</div>
           </button>
 
-          <Link href="/executive/clients">
+          <Link href="/supervisor/supervision">
             <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Clients</div>
-              <div className="sidebar-link-subtitle">Assignments</div>
+              <div className="sidebar-link-title">Supervision</div>
+              <div className="sidebar-link-subtitle">Log sessions</div>
             </button>
           </Link>
 
-          <Link href="/executive/pd">
+          <Link href="/supervisor/pd">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">PD & events</div>
-              <div className="sidebar-link-subtitle">Intern ecosystem</div>
+              <div className="sidebar-link-subtitle">Learning plan</div>
             </button>
           </Link>
 
@@ -159,21 +307,16 @@ export default async function ExecutiveSupervisionPage() {
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
-              <RoleChip role="Executive" />
-              <h1 className="section-title">Supervision & coverage</h1>
+              <RoleChip role="Supervisor" />
+              <h1 className="section-title">Supervision overview</h1>
               <p className="section-subtitle">
-                At-a-glance view of how many interns are in the program, how many are
-                ready for clients, and how much supervision time has been logged.
-                This is where you control onboarding status, readiness, and supervisor
-                assignments.
+                A supervisor-centric view of the program. For the prototype, this
+                shows all supervisors and their linked interns so you can demonstrate
+                how governance, hours, and caseload come together — even before
+                authentication is wired in.
               </p>
             </div>
           </header>
-
-          {/* Optional: Add intern panel if you already have it */}
-          {/*
-          <CreateInternPanel />
-          */}
 
           {/* Snapshot */}
           <section
@@ -196,7 +339,7 @@ export default async function ExecutiveSupervisionPage() {
                 color: "#9ca3af"
               }}
             >
-              Intern supervision snapshot
+              Supervisor snapshot (prototype)
             </p>
 
             <div
@@ -207,24 +350,24 @@ export default async function ExecutiveSupervisionPage() {
               }}
             >
               <SummaryPill
-                label="Interns in program"
-                value={`${totalInterns}`}
-                hint="Rows in intern_profiles"
+                label="Supervisors"
+                value={`${totalSupervisors}`}
+                hint="Rows in supervisors"
               />
               <SummaryPill
-                label="Active interns"
-                value={`${activeInterns}`}
-                hint="Status set to active"
+                label="Supervisor ↔ intern links"
+                value={`${totalLinkedInterns}`}
+                hint="Rows in supervisor_interns"
               />
               <SummaryPill
-                label="Ready for clients"
-                value={`${readyInterns}`}
-                hint="Active + ready_for_clients = true"
+                label="Supervision hours (linked interns)"
+                value={totalHoursAll.toFixed(1)}
+                hint="Sum of hours via linked interns"
               />
               <SummaryPill
-                label="Total supervision hours"
-                value={totalHours.toFixed(1)}
-                hint="Sum of duration_hours"
+                label="Active clients (linked interns)"
+                value={`${totalActiveClientsAll}`}
+                hint="Active clients held by linked interns"
               />
             </div>
 
@@ -249,14 +392,14 @@ export default async function ExecutiveSupervisionPage() {
                   maxWidth: "40rem"
                 }}
               >
-                As supervision logs accumulate, you&apos;ll be able to compare hours
-                per intern and per supervisor, and combine this with client assignment
-                data to ensure safe caseloads.
+                In a future phase, this page will narrow down to a single authenticated
+                supervisor and show just their interns, their supervision notes, and
+                any learners they&apos;re shadowing.
               </p>
             )}
           </section>
 
-          {/* Coverage table (read-only) */}
+          {/* Per-supervisor breakdown */}
           <section
             style={{
               padding: "0.8rem 1.0rem",
@@ -264,7 +407,7 @@ export default async function ExecutiveSupervisionPage() {
               border: "1px solid rgba(148,163,184,0.45)",
               backgroundColor: "rgba(15,23,42,1)",
               display: "grid",
-              gap: "0.6rem"
+              gap: "0.7rem"
             }}
           >
             <div>
@@ -277,99 +420,196 @@ export default async function ExecutiveSupervisionPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Intern supervision coverage
+                Supervisors & their interns
               </p>
               <p
                 style={{
                   fontSize: "0.78rem",
                   color: "#cbd5f5",
-                  maxWidth: "40rem"
+                  maxWidth: "42rem"
                 }}
               >
-                A simple view of who is in the cohort, their onboarding state, and
-                how many supervision hours they have logged so far.
+                Each block shows a supervisor, how many interns they&apos;re
+                responsible for in this prototype, and a quick read on readiness,
+                supervision hours, and caseload for each intern.
               </p>
             </div>
 
-            {interns.length === 0 ? (
+            {supervisors.length === 0 ? (
               <p
                 style={{
                   fontSize: "0.78rem",
                   color: "#e5e7eb"
                 }}
               >
-                No interns have been added yet. Once rows exist in{" "}
-                <code>intern_profiles</code>, they will appear here automatically.
+                No supervisors have been configured yet. Use the executive view to add
+                supervisors and link them to interns.
               </p>
             ) : (
-              <div
-                style={{
-                  borderRadius: "0.75rem",
-                  border: "1px solid rgba(55,65,81,0.9)",
-                  backgroundColor: "rgba(15,23,42,1)",
-                  overflowX: "auto"
-                }}
-              >
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: "0.78rem"
-                  }}
-                >
-                  <thead>
-                    <tr
+              supervisors.map((sup) => {
+                const supLinks = linksBySupervisor.get(sup.id) || [];
+
+                // Summary for this supervisor
+                let supHours = 0;
+                let supActiveClients = 0;
+
+                for (const link of supLinks) {
+                  supHours += hoursByIntern.get(link.intern_id) || 0;
+                  supActiveClients +=
+                    activeClientsByIntern.get(link.intern_id) || 0;
+                }
+
+                return (
+                  <div
+                    key={sup.id}
+                    style={{
+                      borderRadius: "0.85rem",
+                      border: "1px solid rgba(55,65,81,0.9)",
+                      backgroundColor: "rgba(15,23,42,1)",
+                      padding: "0.8rem 0.9rem",
+                      display: "grid",
+                      gap: "0.45rem"
+                    }}
+                  >
+                    <div
                       style={{
-                        borderBottom: "1px solid rgba(55,65,81,0.9)",
-                        backgroundColor: "rgba(15,23,42,1)"
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "0.75rem",
+                        flexWrap: "wrap",
+                        alignItems: "center"
                       }}
                     >
-                      <th style={thStyle}>Intern</th>
-                      <th style={thStyle}>Status</th>
-                      <th style={thStyle}>Ready?</th>
-                      <th style={thStyle}>Current clients</th>
-                      <th style={thStyle}>Supervision hours</th>
-                      <th style={thStyle}>Supervision focus</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {interns.map((intern) => {
-                      const hours = hoursByIntern.get(intern.id) || 0;
-                      return (
-                        <tr
-                          key={intern.id}
+                      <div>
+                        <p
                           style={{
-                            borderBottom: "1px solid rgba(31,41,55,0.85)"
+                            fontSize: "0.86rem",
+                            fontWeight: 500,
+                            color: "#e5e7eb"
                           }}
                         >
-                          <td style={tdStyle}>{intern.full_name || "—"}</td>
-                          <td style={tdStyle}>{intern.status || "—"}</td>
-                          <td style={tdStyle}>
-                            {intern.ready_for_clients ? "Yes" : "No"}
-                          </td>
-                          <td style={tdStyle}>
-                            {typeof intern.current_clients === "number"
-                              ? intern.current_clients
-                              : intern.current_clients || 0}
-                          </td>
-                          <td style={tdStyle}>{hours.toFixed(1)}</td>
-                          <td style={tdStyle}>
-                            {intern.supervision_focus || <span>—</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          {sup.full_name || "Unnamed supervisor"}
+                        </p>
+                        {sup.email && (
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#9ca3af"
+                            }}
+                          >
+                            {sup.email}
+                          </p>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "0.55rem"
+                        }}
+                      >
+                        <MiniPill
+                          label="Interns"
+                          value={`${supLinks.length}`}
+                        />
+                        <MiniPill
+                          label="Hours (linked interns)"
+                          value={supHours.toFixed(1)}
+                        />
+                        <MiniPill
+                          label="Active clients"
+                          value={`${supActiveClients}`}
+                        />
+                      </div>
+                    </div>
+
+                    {supLinks.length === 0 ? (
+                      <p
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "#9ca3af"
+                        }}
+                      >
+                        No interns linked yet. Use the executive supervision page to
+                        connect interns to this supervisor.
+                      </p>
+                    ) : (
+                      <div
+                        style={{
+                          borderRadius: "0.75rem",
+                          border: "1px solid rgba(55,65,81,0.9)",
+                          backgroundColor: "rgba(15,23,42,1)",
+                          overflowX: "auto"
+                        }}
+                      >
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                            fontSize: "0.78rem"
+                          }}
+                        >
+                          <thead>
+                            <tr
+                              style={{
+                                borderBottom:
+                                  "1px solid rgba(55,65,81,0.9)",
+                                backgroundColor: "rgba(15,23,42,1)"
+                              }}
+                            >
+                              <th style={thStyle}>Intern</th>
+                              <th style={thStyle}>Status</th>
+                              <th style={thStyle}>Ready?</th>
+                              <th style={thStyle}>Relationship</th>
+                              <th style={thStyle}>Supervision hours</th>
+                              <th style={thStyle}>Active clients</th>
+                              <th style={thStyle}>Focus</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {supLinks.map((link) => {
+                              const intern = internMap.get(link.intern_id);
+                              const h = hoursByIntern.get(link.intern_id) || 0;
+                              const active =
+                                activeClientsByIntern.get(link.intern_id) || 0;
+
+                              return (
+                                <tr
+                                  key={link.id}
+                                  style={{
+                                    borderBottom:
+                                      "1px solid rgba(31,41,55,0.85)"
+                                  }}
+                                >
+                                  <td style={tdStyle}>
+                                    {intern?.full_name || "—"}
+                                  </td>
+                                  <td style={tdStyle}>
+                                    {intern?.status || "—"}
+                                  </td>
+                                  <td style={tdStyle}>
+                                    {intern?.ready_for_clients ? "Yes" : "No"}
+                                  </td>
+                                  <td style={tdStyle}>
+                                    {link.relationship || "—"}
+                                  </td>
+                                  <td style={tdStyle}>{h.toFixed(1)}</td>
+                                  <td style={tdStyle}>{active}</td>
+                                  <td style={tdStyle}>
+                                    {intern?.supervision_focus || "—"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </section>
-
-          {/* Editable readiness / onboarding controls */}
-          <InternReadinessPanel />
-
-          {/* Supervisor ↔ intern mapping */}
-          <SupervisorAssignmentsPanel />
         </section>
       </div>
     </main>
@@ -420,6 +660,38 @@ function SummaryPill({ label, value, hint }) {
           {hint}
         </p>
       )}
+    </div>
+  );
+}
+
+function MiniPill({ label, value }) {
+  return (
+    <div
+      style={{
+        padding: "0.3rem 0.6rem",
+        borderRadius: "999px",
+        border: "1px solid rgba(148,163,184,0.7)",
+        backgroundColor: "rgba(15,23,42,0.9)",
+        display: "grid",
+        gap: "0.05rem"
+      }}
+    >
+      <span
+        style={{
+          fontSize: "0.7rem",
+          color: "#9ca3af"
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: "0.8rem",
+          color: "#e5e7eb"
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
