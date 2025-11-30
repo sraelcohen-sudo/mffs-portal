@@ -3,6 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 
+const CHARACTERISTIC_OPTIONS = [
+  "Lesbian",
+  "Gay",
+  "Bisexual",
+  "Transgender",
+  "Two-Spirit",
+  "Queer",
+  "Questioning",
+  "Intersex",
+  "Asexual",
+  "Aboriginal / Indigenous",
+  "Racialized",
+  "Disabled"
+];
+
 export default function CreateClientPanel() {
   const supabase = useMemo(() => createSupabaseClient(), []);
 
@@ -10,18 +25,21 @@ export default function CreateClientPanel() {
   const [loadingInterns, setLoadingInterns] = useState(true);
 
   const [form, setForm] = useState({
-    full_name: "",
-    status: "active",
+    full_name: "", // used as OWL Practice Unique ID (no actual name)
+    status: "waitlisted", // default to waitlisted for triage
     intern_id: "",
     referral_source: "",
-    notes: ""
+    notes: "",
+    characteristics: []
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusTone, setStatusTone] = useState("neutral"); // neutral | success | error
 
-  // Load interns for the dropdown
+  // Load *eligible* interns for the dropdown:
+  // - status = 'active'
+  // - ready_for_clients = true
   useEffect(() => {
     if (!supabase) {
       setLoadingInterns(false);
@@ -32,14 +50,21 @@ export default function CreateClientPanel() {
       try {
         const { data, error } = await supabase
           .from("intern_profiles")
-          .select("id, full_name, status")
+          .select("id, full_name, status, ready_for_clients")
           .order("full_name", { ascending: true });
 
         if (error) {
-          console.error("Error loading intern_profiles for executive clients panel:", error);
+          console.error(
+            "Error loading intern_profiles for executive clients panel:",
+            error
+          );
           setInterns([]);
         } else {
-          setInterns(Array.isArray(data) ? data : []);
+          const all = Array.isArray(data) ? data : [];
+          const eligible = all.filter(
+            (i) => i.ready_for_clients === true && i.status === "active"
+          );
+          setInterns(eligible);
         }
       } catch (e) {
         console.error(
@@ -63,6 +88,22 @@ export default function CreateClientPanel() {
     }));
   };
 
+  const handleToggleCharacteristic = (value) => () => {
+    setForm((prev) => {
+      const exists = prev.characteristics.includes(value);
+      if (exists) {
+        return {
+          ...prev,
+          characteristics: prev.characteristics.filter((c) => c !== value)
+        };
+      }
+      return {
+        ...prev,
+        characteristics: [...prev.characteristics, value]
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -76,7 +117,7 @@ export default function CreateClientPanel() {
 
     if (!form.full_name.trim()) {
       setStatusTone("error");
-      setStatusMessage("Please enter the client's full name.");
+      setStatusMessage("Please enter the OWL Practice Unique ID.");
       return;
     }
 
@@ -86,11 +127,18 @@ export default function CreateClientPanel() {
 
     try {
       const payload = {
+        // full_name is used as the OWL Practice ID (no actual name in this prototype)
         full_name: form.full_name.trim(),
-        status: form.status || "active",
+        status: form.status || "waitlisted",
+        // If status is waitlisted, you can still optionally pre-assign an intern,
+        // but typically this stays unassigned until triage.
         intern_id: form.intern_id || null,
         referral_source: form.referral_source.trim() || null,
-        notes: form.notes.trim() || null
+        notes: form.notes.trim() || null,
+        characteristics:
+          form.characteristics && form.characteristics.length > 0
+            ? form.characteristics
+            : null
       };
 
       const { error } = await supabase.from("clients").insert(payload);
@@ -105,14 +153,15 @@ export default function CreateClientPanel() {
       } else {
         setStatusTone("success");
         setStatusMessage(
-          "Client added. Refresh the page to see them reflected in the client list and stats."
+          "Client added. Refresh the page to see them reflected in the client list and waitlist."
         );
         setForm({
           full_name: "",
-          status: "active",
+          status: "waitlisted",
           intern_id: "",
           referral_source: "",
-          notes: ""
+          notes: "",
+          characteristics: []
         });
       }
     } catch (err) {
@@ -137,7 +186,7 @@ export default function CreateClientPanel() {
         backgroundColor: "rgba(15,23,42,1)",
         display: "grid",
         gap: "0.6rem",
-        maxWidth: "40rem"
+        maxWidth: "44rem"
       }}
     >
       <p
@@ -157,20 +206,10 @@ export default function CreateClientPanel() {
           lineHeight: 1.5
         }}
       >
-        Executives can create clients and decide which intern should carry the file. In
-        this prototype, this form inserts directly into the{" "}
-        <code
-          style={{
-            fontSize: "0.72rem",
-            backgroundColor: "rgba(15,23,42,0.9)",
-            padding: "0.06rem 0.25rem",
-            borderRadius: "0.35rem",
-            border: "1px solid rgba(30,64,175,0.8)"
-          }}
-        >
-          clients
-        </code>{" "}
-        table and links them to an intern profile.
+        In this prototype, clients are identified only by their{" "}
+        <strong>OWL Practice Unique ID</strong>, not by name. You can mark them as
+        waitlisted or active, attach them to an eligible intern, and tag grant-related
+        characteristics (e.g., LGBTQ2S+, Aboriginal / Indigenous).
       </p>
 
       <form
@@ -181,7 +220,7 @@ export default function CreateClientPanel() {
           fontSize: "0.8rem"
         }}
       >
-        {/* Name & status */}
+        {/* OWL ID & status */}
         <div
           style={{
             display: "grid",
@@ -191,13 +230,13 @@ export default function CreateClientPanel() {
         >
           <div style={{ display: "grid", gap: "0.18rem" }}>
             <label style={{ color: "#e5e7eb" }}>
-              Client name <span style={{ color: "#fca5a5" }}>*</span>
+              OWL Practice Unique ID <span style={{ color: "#fca5a5" }}>*</span>
             </label>
             <input
               type="text"
               value={form.full_name}
               onChange={handleChange("full_name")}
-              placeholder="e.g., Jamie Doe"
+              placeholder="e.g., 12345-ABCD"
               style={inputStyle}
             />
           </div>
@@ -212,16 +251,18 @@ export default function CreateClientPanel() {
                 paddingRight: "1.8rem"
               }}
             >
-              <option value="active">Active</option>
               <option value="waitlisted">Waitlisted</option>
+              <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
         </div>
 
-        {/* Intern assignment */}
+        {/* Intern assignment (only eligible interns shown) */}
         <div style={{ display: "grid", gap: "0.18rem" }}>
-          <label style={{ color: "#e5e7eb" }}>Assigned intern</label>
+          <label style={{ color: "#e5e7eb" }}>
+            Assigned intern (optional while waitlisted)
+          </label>
           <select
             value={form.intern_id}
             onChange={handleChange("intern_id")}
@@ -231,12 +272,14 @@ export default function CreateClientPanel() {
             }}
           >
             <option value="">Unassigned</option>
-            {loadingInterns && <option>Loading interns…</option>}
+            {loadingInterns && <option>Loading eligible interns…</option>}
+            {!loadingInterns && interns.length === 0 && (
+              <option>No interns currently eligible for clients</option>
+            )}
             {!loadingInterns &&
               interns.map((intern) => (
                 <option key={intern.id} value={intern.id}>
                   {intern.full_name || "Unnamed intern"}
-                  {intern.status ? ` (${intern.status})` : ""}
                 </option>
               ))}
           </select>
@@ -252,6 +295,70 @@ export default function CreateClientPanel() {
             placeholder="e.g., self-referred, school, MFFS website"
             style={inputStyle}
           />
+        </div>
+
+        {/* Characteristics */}
+        <div style={{ display: "grid", gap: "0.25rem" }}>
+          <label style={{ color: "#e5e7eb" }}>
+            Characteristics (for grant stats, optional)
+          </label>
+          <p
+            style={{
+              fontSize: "0.72rem",
+              color: "#9ca3af",
+              maxWidth: "40rem"
+            }}
+          >
+            These fields are for aggregate reporting only and should align with your
+            grant language (e.g., LGBTQ2S+, Aboriginal / Indigenous). No names are
+            stored in this system.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.45rem"
+            }}
+          >
+            {CHARACTERISTIC_OPTIONS.map((opt) => {
+              const checked = form.characteristics.includes(opt);
+              return (
+                <label
+                  key={opt}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.28rem",
+                    fontSize: "0.75rem",
+                    padding: "0.18rem 0.45rem",
+                    borderRadius: "999px",
+                    border: checked
+                      ? "1px solid rgba(129,140,248,0.9)"
+                      : "1px solid rgba(75,85,99,0.9)",
+                    backgroundColor: checked
+                      ? "rgba(30,64,175,0.6)"
+                      : "rgba(15,23,42,1)",
+                    color: "#e5e7eb",
+                    cursor: "pointer"
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={handleToggleCharacteristic(opt)}
+                    style={{
+                      width: "0.8rem",
+                      height: "0.8rem",
+                      borderRadius: "0.25rem",
+                      border: "1px solid rgba(75,85,99,0.9)",
+                      backgroundColor: "rgba(15,23,42,1)"
+                    }}
+                  />
+                  <span>{opt}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         {/* Notes */}

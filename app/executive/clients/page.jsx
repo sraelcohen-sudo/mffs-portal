@@ -2,6 +2,7 @@ import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 import CreateClientPanel from "./CreateClientPanel";
+import WaitlistManager from "./WaitlistManager";
 
 export default async function ExecutiveClientsPage() {
   const supabase = createSupabaseClient();
@@ -14,11 +15,13 @@ export default async function ExecutiveClientsPage() {
     loadError =
       "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY).";
   } else {
-    // 1) Load clients
+    // 1) Load clients (including characteristics)
     try {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, full_name, status, intern_id, referral_source, notes, created_at")
+        .select(
+          "id, full_name, status, intern_id, referral_source, notes, created_at, characteristics"
+        )
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -45,11 +48,11 @@ export default async function ExecutiveClientsPage() {
       loadError = "Could not load clients from Supabase.";
     }
 
-    // 2) Load interns to map intern_id → name
+    // 2) Load interns (including ready_for_clients) for mapping + eligibility
     try {
       const { data, error } = await supabase
         .from("intern_profiles")
-        .select("id, full_name, status");
+        .select("id, full_name, status, ready_for_clients");
 
       if (error) {
         console.error(
@@ -73,9 +76,16 @@ export default async function ExecutiveClientsPage() {
     interns.map((i) => [i.id, { full_name: i.full_name, status: i.status }])
   );
 
+  const eligibleInterns = interns.filter(
+    (i) => i.ready_for_clients === true && i.status === "active"
+  );
+
   // Derived stats
   const totalClients = clients.length;
   const activeClients = clients.filter((c) => c.status === "active").length;
+  const waitlistedClients = clients.filter(
+    (c) => c.status === "waitlisted"
+  );
   const unassignedClients = clients.filter((c) => !c.intern_id).length;
 
   return (
@@ -127,8 +137,8 @@ export default async function ExecutiveClientsPage() {
               <h1 className="section-title">Clients & assignments</h1>
               <p className="section-subtitle">
                 Central control over who is in the system, who holds the file, and how
-                the caseload is distributed across interns. This is where executives add
-                clients and attach them to interns.
+                the caseload is distributed across interns. This view uses OWL Practice
+                IDs instead of names and supports grant-aligned characteristics.
               </p>
             </div>
           </header>
@@ -179,6 +189,11 @@ export default async function ExecutiveClientsPage() {
                 hint="Where status = 'active'"
               />
               <SummaryPill
+                label="Waitlisted clients"
+                value={`${waitlistedClients.length}`}
+                hint="Where status = 'waitlisted'"
+              />
+              <SummaryPill
                 label="Unassigned clients"
                 value={`${unassignedClients}`}
                 hint="No intern linked"
@@ -206,8 +221,9 @@ export default async function ExecutiveClientsPage() {
                   maxWidth: "40rem"
                 }}
               >
-                As this evolves, this tile can surface caseload pressure, maximum client
-                caps per intern, and alerts when assignments become unbalanced.
+                As this evolves, you can layer on caseload caps, risk flags, and
+                automated checks to ensure only eligible, ready interns receive
+                assignments.
               </p>
             )}
           </section>
@@ -233,7 +249,7 @@ export default async function ExecutiveClientsPage() {
                   marginBottom: "0.25rem"
                 }}
               >
-                Client list
+                Client list (OWL IDs)
               </p>
               <p
                 style={{
@@ -242,9 +258,9 @@ export default async function ExecutiveClientsPage() {
                   maxWidth: "40rem"
                 }}
               >
-                A lightweight snapshot of each client, including assignment, status,
-                referral source, and a short internal note. Future iterations could add
-                filters by intern, risk, site, or date opened.
+                Each row uses only the OWL Practice Unique ID, attached intern, status,
+                grant-aligned characteristics, and a short internal note. Names and
+                detailed PHI stay in OWL Practice, not in this prototype.
               </p>
             </div>
 
@@ -283,9 +299,10 @@ export default async function ExecutiveClientsPage() {
                         backgroundColor: "rgba(15,23,42,1)"
                       }}
                     >
-                      <th style={thStyle}>Client</th>
+                      <th style={thStyle}>OWL ID</th>
                       <th style={thStyle}>Status</th>
                       <th style={thStyle}>Assigned intern</th>
+                      <th style={thStyle}>Characteristics</th>
                       <th style={thStyle}>Referral source</th>
                       <th style={thStyle}>Notes</th>
                       <th style={thStyle}>Created</th>
@@ -318,6 +335,12 @@ export default async function ExecutiveClientsPage() {
                           ? c.notes.slice(0, 117) + "…"
                           : c.notes || "—";
 
+                      const characteristics =
+                        Array.isArray(c.characteristics) &&
+                        c.characteristics.length > 0
+                          ? c.characteristics.join(", ")
+                          : "—";
+
                       return (
                         <tr
                           key={c.id}
@@ -330,6 +353,7 @@ export default async function ExecutiveClientsPage() {
                             <StatusBadge status={statusLabel} />
                           </td>
                           <td style={tdStyle}>{internLabel}</td>
+                          <td style={tdStyle}>{characteristics}</td>
                           <td style={tdStyle}>
                             {c.referral_source || <span>—</span>}
                           </td>
@@ -343,6 +367,12 @@ export default async function ExecutiveClientsPage() {
               </div>
             )}
           </section>
+
+          {/* Waitlisted clients manager */}
+          <WaitlistManager
+            initialWaitlisted={waitlistedClients}
+            eligibleInterns={eligibleInterns}
+          />
         </section>
       </div>
     </main>
