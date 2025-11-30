@@ -7,172 +7,237 @@ import { createSupabaseClient } from "@/lib/supabaseClient";
 
 export default function InternPDPage() {
   const supabase = useMemo(() => createSupabaseClient(), []);
+
+  const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [statusTone, setStatusTone] = useState("neutral"); // neutral | success | error
+
+  const [interns, setInterns] = useState([]);
+  const [selectedInternId, setSelectedInternId] = useState("");
+  const [selectedIntern, setSelectedIntern] = useState(null);
+
   const [events, setEvents] = useState([]);
-  const [loadError, setLoadError] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [submittingId, setSubmittingId] = useState(null);
-  const [submittedIds, setSubmittedIds] = useState(new Set());
-  const [internName, setInternName] = useState("");
-  const [nameHint, setNameHint] = useState("");
+  const [interests, setInterests] = useState([]);
+  const [requestingEventId, setRequestingEventId] = useState(null);
 
-  // ───────────────────────────
-  // Load events from Supabase (client side)
-  // ───────────────────────────
   useEffect(() => {
-    async function fetchEvents() {
-      if (!supabase) {
-        setLoadError(
-          "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)."
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("professional_development_events")
-          .select("*");
-
-        if (error) {
-          console.error("Error loading PD events for intern view:", error);
-
-          const msg = (error.message || "").toLowerCase();
-          const isMissingTable =
-            error.code === "42P01" ||
-            msg.includes("does not exist") ||
-            msg.includes("relation");
-
-          if (isMissingTable) {
-            // Table doesn’t exist yet in this project → behave as “no events” without red error
-            setEvents([]);
-            setLoadError(null);
-          } else {
-            setLoadError("Could not load professional development events.");
-          }
-        } else {
-          setEvents(Array.isArray(data) ? data : []);
-          setLoadError(null);
-        }
-      } catch (e) {
-        console.error("Unexpected error loading PD events for intern:", e);
-        setLoadError("Could not load professional development events.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchEvents();
-  }, [supabase]);
-
-  // ───────────────────────────
-  // Click: Request a spot
-  // ───────────────────────────
-  const handleRequestSpot = async (eventId) => {
-    if (!supabase || !eventId) return;
-    if (submittingId === eventId) return; // debounce
-
-    // Gentle nudge to include a name
-    if (!internName.trim()) {
-      setNameHint(
-        "For this prototype, please add your name above so the executive view can see who requested a spot."
+    if (!supabase) {
+      setLoading(false);
+      setStatusTone("error");
+      setStatusMessage(
+        "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)."
       );
       return;
-    } else {
-      setNameHint("");
     }
 
-    setSubmittingId(eventId);
+    const load = async () => {
+      try {
+        // 1) Interns
+        const { data: internData, error: internError } = await supabase
+          .from("intern_profiles")
+          .select("id, full_name, status")
+          .order("full_name", { ascending: true });
 
-    try {
-      const { error } = await supabase.from("pd_interest").insert({
-        event_id: eventId,
-        intern_name: internName.trim()
-      });
+        if (internError) {
+          console.error("Error loading intern_profiles (intern PD):", internError);
+          setInterns([]);
+          setStatusTone("error");
+          setStatusMessage(
+            "Could not load intern profiles. Check 'intern_profiles'."
+          );
+        } else {
+          const arr = Array.isArray(internData) ? internData : [];
+          setInterns(arr);
+          if (arr.length > 0) {
+            setSelectedInternId(arr[0].id);
+            setSelectedIntern(arr[0]);
+          }
+        }
 
-      if (error) {
-        console.error("Error inserting PD interest:", error);
-      } else {
-        // Mark this event as “submitted” so the button can change state
-        setSubmittedIds((prev) => new Set(prev).add(eventId));
+        // 2) PD events
+        const { data: eventData, error: eventError } = await supabase
+          .from("professional_development_events")
+          .select(
+            "id, title, description, starts_at, location, admission_type, capacity, registration_slug, price, institution"
+          )
+          .order("starts_at", { ascending: true });
+
+        if (eventError) {
+          console.error(
+            "Error loading professional_development_events (intern PD):",
+            eventError
+          );
+          setEvents([]);
+          if (!internError) {
+            setStatusTone("error");
+            setStatusMessage(
+              "Could not load PD events. Check 'professional_development_events'."
+            );
+          }
+        } else {
+          setEvents(Array.isArray(eventData) ? eventData : []);
+        }
+
+        // 3) Interests
+        const { data: interestData, error: interestError } = await supabase
+          .from("professional_development_interests")
+          .select("id, event_id, intern_id, status, created_at");
+
+        if (interestError) {
+          console.error(
+            "Error loading professional_development_interests (intern PD):",
+            interestError
+          );
+          setInterests([]);
+          if (!internError) {
+            setStatusTone("error");
+            setStatusMessage(
+              "Could not load PD interests. Check 'professional_development_interests'."
+            );
+          }
+        } else {
+          setInterests(Array.isArray(interestData) ? interestData : []);
+        }
+      } catch (e) {
+        console.error("Unexpected error loading intern PD page:", e);
+        setStatusTone("error");
+        setStatusMessage(
+          "Unexpected error while loading PD data. See console / logs."
+        );
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error("Unexpected error inserting PD interest:", e);
-    } finally {
-      setSubmittingId(null);
+    };
+
+    load();
+  }, [supabase]);
+
+  // Keep selectedIntern in sync with dropdown
+  useEffect(() => {
+    if (!selectedInternId || interns.length === 0) {
+      setSelectedIntern(null);
+      return;
     }
+    const found = interns.find((i) => i.id === selectedInternId) || null;
+    setSelectedIntern(found);
+  }, [selectedInternId, interns]);
+
+  const updateStatus = (tone, msg) => {
+    setStatusTone(tone);
+    setStatusMessage(msg);
   };
 
-  // --------- Derived metrics ----------
-  const now = new Date();
+  // Small helpers to compute interest counts & status
+  const interestsByEvent = new Map();
+  for (const interest of interests) {
+    if (!interestsByEvent.has(interest.event_id)) {
+      interestsByEvent.set(interest.event_id, []);
+    }
+    interestsByEvent.get(interest.event_id).push(interest);
+  }
 
-  const sortByStartsAt = (arr) =>
-    [...arr].sort((a, b) => {
-      const da = a.starts_at ? new Date(a.starts_at).getTime() : 0;
-      const db = b.starts_at ? new Date(b.starts_at).getTime() : 0;
-      return da - db;
-    });
+  const getEventInterestCount = (eventId) => {
+    const arr = interestsByEvent.get(eventId);
+    return arr ? arr.length : 0;
+  };
 
-  const upcomingEvents = sortByStartsAt(
-    events.filter((e) => {
-      if (!e.starts_at) return false;
-      const d = new Date(e.starts_at);
-      if (Number.isNaN(d.getTime())) return false;
-      return d.getTime() >= now.getTime();
-    })
-  );
+  const getCurrentInternInterest = (eventId) => {
+    if (!selectedIntern) return null;
+    const arr = interestsByEvent.get(eventId);
+    if (!arr) return null;
+    return (
+      arr.find((i) => i.intern_id === selectedIntern.id) ||
+      null
+    );
+  };
 
-  const pastEvents = sortByStartsAt(
-    events.filter((e) => {
-      if (!e.starts_at) return false;
-      const d = new Date(e.starts_at);
-      if (Number.isNaN(d.getTime())) return false;
-      return d.getTime() < now.getTime();
-    })
-  );
+  const handleRequestSpot = async (eventId) => {
+    if (!supabase) {
+      updateStatus(
+        "error",
+        "Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)."
+      );
+      return;
+    }
+    if (!selectedIntern) {
+      updateStatus("error", "Please select an intern first.");
+      return;
+    }
 
-  const totalCapacity = events.reduce((sum, e) => {
-    const cap =
-      typeof e.capacity === "number"
-        ? e.capacity
-        : Number.isFinite(Number(e.capacity))
-        ? Number(e.capacity)
-        : 0;
-    return sum + cap;
-  }, 0);
+    const existing = getCurrentInternInterest(eventId);
+    if (existing) {
+      updateStatus(
+        "neutral",
+        "You have already requested a spot for this event."
+      );
+      return;
+    }
+
+    setRequestingEventId(eventId);
+    updateStatus("neutral", "");
+
+    try {
+      const payload = {
+        event_id: eventId,
+        intern_id: selectedIntern.id,
+        status: "requested"
+      };
+
+      const { data, error } = await supabase
+        .from("professional_development_interests")
+        .insert(payload)
+        .select("id, event_id, intern_id, status, created_at")
+        .single();
+
+      if (error) {
+        console.error("Error inserting PD interest (intern):", error);
+        updateStatus(
+          "error",
+          error.message ||
+            "Could not record interest. Check Supabase policies / logs."
+        );
+      } else if (data) {
+        setInterests((prev) => [data, ...prev]);
+        updateStatus(
+          "success",
+          "Interest recorded. The program can now include this in PD planning."
+        );
+      }
+    } catch (e) {
+      console.error("Unexpected error inserting PD interest (intern):", e);
+      updateStatus(
+        "error",
+        "Unexpected error while recording interest. See console / logs."
+      );
+    } finally {
+      setRequestingEventId(null);
+    }
+  };
 
   return (
     <main className="main-shell">
       <div className="main-shell-inner main-shell-inner--with-sidebar">
-        {/* ───────────────────────────
-            INTERN SIDEBAR 
-        ─────────────────────────── */}
+        {/* SIDEBAR */}
         <aside className="sidebar">
           <p className="sidebar-title">Intern portal</p>
 
           <Link href="/intern">
             <button className="sidebar-link" type="button">
               <div className="sidebar-link-title">Overview</div>
-              <div className="sidebar-link-subtitle">Today</div>
-            </button>
-          </Link>
-
-          <Link href="/intern/clients">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">My clients</div>
-              <div className="sidebar-link-subtitle">Caseload</div>
+              <div className="sidebar-link-subtitle">Your caseload</div>
             </button>
           </Link>
 
           <Link href="/intern/supervision">
             <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Supervision & hours</div>
-              <div className="sidebar-link-subtitle">Support</div>
+              <div className="sidebar-link-title">Supervision</div>
+              <div className="sidebar-link-subtitle">Hours & notes</div>
             </button>
           </Link>
 
           <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Professional development</div>
-            <div className="sidebar-link-subtitle">Workshops & training</div>
+            <div className="sidebar-link-title">PD & events</div>
+            <div className="sidebar-link-subtitle">Learning plan</div>
           </button>
 
           <Link href="/login">
@@ -183,315 +248,394 @@ export default function InternPDPage() {
           </Link>
         </aside>
 
-        {/* ───────────────────────────
-            MAIN CONTENT
-        ─────────────────────────── */}
+        {/* MAIN CONTENT */}
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
           <header className="section-header">
             <div>
               <RoleChip role="Intern" />
-              <h1 className="section-title">Professional development</h1>
+              <h1 className="section-title">PD & events</h1>
               <p className="section-subtitle">
-                Upcoming trainings, workshops, and learning opportunities available to
-                interns through MFFS. Use this alongside supervision to plan intentional,
-                trauma-informed learning.
+                Browse the program&apos;s professional development ecosystem and
+                register your interest in events. In the prototype, you can switch
+                between interns to simulate how different learners signal their PD
+                priorities.
               </p>
             </div>
           </header>
 
-          {/* INTERN NAME INPUT (prototype) */}
-          <section
-            style={{
-              marginTop: "0.7rem",
-              marginBottom: "0.8rem",
-              padding: "0.7rem 0.9rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.6)",
-              backgroundColor: "rgba(15,23,42,1)",
-              display: "grid",
-              gap: "0.4rem",
-              maxWidth: "28rem"
-            }}
-          >
+          {/* STATUS MESSAGE */}
+          {statusMessage && (
             <p
               style={{
-                fontSize: "0.74rem",
-                color: "#e5e7eb",
-                lineHeight: 1.4
+                marginTop: "0.4rem",
+                marginBottom: "0.1rem",
+                fontSize: "0.78rem",
+                color:
+                  statusTone === "error"
+                    ? "#fecaca"
+                    : statusTone === "success"
+                    ? "#bbf7d0"
+                    : "#e5e7eb"
               }}
             >
-              <strong>Intern name (prototype):</strong> enter your name so the
-              executive view can see who has requested a spot for each PD event. In a
-              live system this would be pulled from your login, not typed manually.
-            </p>
-            <input
-              type="text"
-              value={internName}
-              onChange={(e) => setInternName(e.target.value)}
-              placeholder="e.g., Jordan Smith"
-              style={{
-                fontSize: "0.8rem",
-                padding: "0.4rem 0.6rem",
-                borderRadius: "0.55rem",
-                border: "1px solid rgba(75,85,99,0.9)",
-                backgroundColor: "rgba(15,23,42,1)",
-                color: "#f9fafb",
-                outline: "none"
-              }}
-            />
-            {nameHint && (
-              <p
-                style={{
-                  fontSize: "0.74rem",
-                  color: "#fecaca"
-                }}
-              >
-                {nameHint}
-              </p>
-            )}
-          </section>
-
-          {/* SUMMARY TILE */}
-          <section
-            style={{
-              marginBottom: "1.0rem",
-              padding: "0.7rem 0.9rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.5)",
-              background:
-                "radial-gradient(circle at top left, rgba(15,23,42,1), rgba(15,23,42,1))",
-              display: "grid",
-              gap: "0.45rem"
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.72rem",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "#9ca3af"
-              }}
-            >
-              PD snapshot (intern view)
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "0.85rem"
-              }}
-            >
-              <SummaryPill
-                label="Upcoming events"
-                value={
-                  isLoading && !loadError
-                    ? "Loading..."
-                    : `${upcomingEvents.length}`
-                }
-                hint="Sessions with a future start date"
-              />
-              <SummaryPill
-                label="Past events"
-                value={
-                  isLoading && !loadError ? "Loading..." : `${pastEvents.length}`
-                }
-                hint="Already delivered sessions"
-              />
-              <SummaryPill
-                label="Total PD offerings"
-                value={
-                  isLoading && !loadError ? "Loading..." : `${events.length}`
-                }
-                hint="All events listed in the PD table"
-              />
-              <SummaryPill
-                label="Total capacity"
-                value={
-                  isLoading && !loadError
-                    ? "Loading..."
-                    : totalCapacity > 0
-                    ? `${totalCapacity} seats`
-                    : "To be determined"
-                }
-                hint="Based on the capacity field on each event"
-              />
-            </div>
-          </section>
-
-          {/* ERROR STATE – only if Supabase config is broken */}
-          {loadError && (
-            <section
-              style={{
-                marginBottom: "1.2rem",
-                padding: "0.8rem 0.9rem",
-                borderRadius: "0.75rem",
-                border: "1px solid rgba(248,113,113,0.6)",
-                backgroundColor: "rgba(127,29,29,0.75)"
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#fee2e2"
-                }}
-              >
-                {loadError}
-              </p>
-            </section>
-          )}
-
-          {/* LOADING STATE (soft) */}
-          {isLoading && !loadError && (
-            <p
-              style={{
-                fontSize: "0.8rem",
-                color: "#9ca3af",
-                marginBottom: "0.8rem"
-              }}
-            >
-              Loading professional development events…
+              {statusMessage}
             </p>
           )}
 
-          {/* UPCOMING EVENTS */}
-          <section
-            style={{
-              marginBottom: "1.4rem",
-              padding: "0.9rem 1rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.4)",
-              background:
-                "radial-gradient(circle at top left, rgba(148,163,184,0.16), rgba(15,23,42,1))",
-              display: "grid",
-              gap: "0.7rem"
-            }}
-          >
-            <div>
-              <p
+          {loading ? (
+            <p
+              style={{
+                marginTop: "0.8rem",
+                fontSize: "0.82rem",
+                color: "#e5e7eb"
+              }}
+            >
+              Loading interns, PD events, and existing interests…
+            </p>
+          ) : interns.length === 0 ? (
+            <p
+              style={{
+                marginTop: "0.8rem",
+                fontSize: "0.8rem",
+                color: "#e5e7eb"
+              }}
+            >
+              No interns have been configured yet. Once rows exist in{" "}
+              <code>intern_profiles</code>, this page will light up.
+            </p>
+          ) : (
+            <>
+              {/* Intern selector */}
+              <section
                 style={{
-                  fontSize: "0.74rem",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#e5e7eb",
-                  marginBottom: "0.25rem"
+                  marginTop: "0.6rem",
+                  marginBottom: "0.8rem",
+                  padding: "0.8rem 0.9rem",
+                  borderRadius: "0.9rem",
+                  border: "1px solid rgba(148,163,184,0.5)",
+                  backgroundColor: "rgba(15,23,42,1)",
+                  display: "grid",
+                  gap: "0.5rem"
                 }}
               >
-                Upcoming events
-              </p>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#cbd5f5",
-                  maxWidth: "34rem"
-                }}
-              >
-                These are the workshops and trainings scheduled for a future date.
-                Bring them to supervision so you can connect PD choices to your learning
-                goals and client work.
-              </p>
-            </div>
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "#9ca3af"
+                  }}
+                >
+                  Choose intern (demo mode)
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "0.7rem",
+                    alignItems: "center"
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        fontSize: "0.7rem",
+                        color: "#9ca3af",
+                        marginBottom: "0.15rem"
+                      }}
+                    >
+                      Intern
+                    </p>
+                    <select
+                      value={selectedInternId}
+                      onChange={(e) => {
+                        setSelectedInternId(e.target.value);
+                        updateStatus("neutral", "");
+                      }}
+                      style={selectStyle}
+                    >
+                      {interns.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.full_name || "Unnamed intern"}
+                          {i.status ? ` (${i.status})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    color: "#9ca3af",
+                    maxWidth: "40rem"
+                  }}
+                >
+                  In a future phase, this page will automatically show PD data for the
+                  logged-in intern only, while executives will see aggregated demand
+                  curves across the whole cohort.
+                </p>
+              </section>
 
-            {!isLoading && upcomingEvents.length === 0 && !loadError && (
-              <p
+              {/* Events list */}
+              <section
                 style={{
-                  fontSize: "0.78rem",
-                  color: "#e5e7eb"
+                  padding: "0.8rem 0.9rem",
+                  borderRadius: "0.9rem",
+                  border: "1px solid rgba(148,163,184,0.45)",
+                  backgroundColor: "rgba(15,23,42,1)",
+                  display: "grid",
+                  gap: "0.7rem"
                 }}
               >
-                There are no upcoming events yet. As new PD events are added, they will
-                appear here automatically.
-              </p>
-            )}
+                <div>
+                  <p
+                    style={{
+                      fontSize: "0.74rem",
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      color: "#e5e7eb",
+                      marginBottom: "0.25rem"
+                    }}
+                  >
+                    Professional development ecosystem
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "0.78rem",
+                      color: "#cbd5f5",
+                      maxWidth: "42rem"
+                    }}
+                  >
+                    These are program-level PD offerings, external trainings, and
+                    conferences. Your interest helps the program prioritize funding and
+                    build a coherent learning journey across placements.
+                  </p>
+                </div>
 
-            {upcomingEvents.length > 0 && (
-              <div
-                className="card-grid"
-                style={{
-                  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))"
-                }}
-              >
-                {upcomingEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    isPast={false}
-                    submitting={submittingId === event.id}
-                    submitted={submittedIds.has(event.id)}
-                    onRequestSpot={() => handleRequestSpot(event.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+                {events.length === 0 ? (
+                  <p
+                    style={{
+                      fontSize: "0.78rem",
+                      color: "#e5e7eb"
+                    }}
+                  >
+                    No professional development events have been configured yet. Use
+                    the executive PD view to add events.
+                  </p>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "0.65rem"
+                    }}
+                  >
+                    {events.map((event) => {
+                      const interestForIntern = getCurrentInternInterest(event.id);
+                      const totalRequests = getEventInterestCount(event.id);
 
-          {/* PAST EVENTS */}
-          <section
-            style={{
-              padding: "0.9rem 1rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.35)",
-              backgroundColor: "rgba(15,23,42,1)",
-              display: "grid",
-              gap: "0.6rem"
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  fontSize: "0.74rem",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#e5e7eb",
-                  marginBottom: "0.25rem"
-                }}
-              >
-                Past events
-              </p>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#cbd5f5",
-                  maxWidth: "36rem"
-                }}
-              >
-                Previously delivered PD. In a future version, you might see links to
-                recordings, slides, or resources here if MFFS chooses to make them
-                available to current cohorts.
-              </p>
-            </div>
+                      const dateLabel = event.starts_at
+                        ? new Date(event.starts_at).toLocaleString("en-CA", {
+                            dateStyle: "medium",
+                            timeStyle: "short"
+                          })
+                        : "Date TBA";
 
-            {!isLoading && pastEvents.length === 0 && !loadError && (
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#e5e7eb"
-                }}
-              >
-                No past events are recorded yet.
-              </p>
-            )}
+                      const admissionLabel =
+                        event.admission_type === "controlled"
+                          ? "Controlled admission"
+                          : event.admission_type === "first_come"
+                          ? "First come, first served"
+                          : event.admission_type || "Admission TBA";
 
-            {pastEvents.length > 0 && (
-              <div
-                className="card-grid"
-                style={{
-                  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))"
-                }}
-              >
-                {pastEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    isPast={true}
-                    submitting={false}
-                    submitted={submittedIds.has(event.id)}
-                    onRequestSpot={null}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+                      const capacityLabel =
+                        typeof event.capacity === "number"
+                          ? `${event.capacity} seats`
+                          : event.capacity || "Capacity TBA";
+
+                      const priceLabel =
+                        typeof event.price === "number"
+                          ? `$${event.price.toFixed(2)}`
+                          : event.price || "Price TBA";
+
+                      return (
+                        <article
+                          key={event.id}
+                          style={{
+                            borderRadius: "0.85rem",
+                            border: "1px solid rgba(55,65,81,0.9)",
+                            backgroundColor: "rgba(15,23,42,1)",
+                            padding: "0.8rem 0.9rem",
+                            display: "grid",
+                            gap: "0.35rem"
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "0.75rem",
+                              flexWrap: "wrap"
+                            }}
+                          >
+                            <div>
+                              <h2
+                                style={{
+                                  fontSize: "0.9rem",
+                                  fontWeight: 500,
+                                  color: "#e5e7eb",
+                                  marginBottom: "0.1rem"
+                                }}
+                              >
+                                {event.title || "Untitled PD event"}
+                              </h2>
+                              {event.institution && (
+                                <p
+                                  style={{
+                                    fontSize: "0.76rem",
+                                    color: "#9ca3af"
+                                  }}
+                                >
+                                  Offered by {event.institution}
+                                </p>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "0.35rem",
+                                alignItems: "center"
+                              }}
+                            >
+                              <EventTag label={admissionLabel} />
+                              <EventTag label={capacityLabel} />
+                              <EventTag label={priceLabel} />
+                            </div>
+                          </div>
+
+                          {event.description && (
+                            <p
+                              style={{
+                                fontSize: "0.78rem",
+                                color: "#d1d5db",
+                                marginTop: "0.1rem",
+                                maxWidth: "40rem"
+                              }}
+                            >
+                              {event.description}
+                            </p>
+                          )}
+
+                          <p
+                            style={{
+                              fontSize: "0.76rem",
+                              color: "#9ca3af",
+                              marginTop: "0.15rem"
+                            }}
+                          >
+                            <span style={{ color: "#e5e7eb" }}>{dateLabel}</span>
+                            {event.location && (
+                              <>
+                                {" "}
+                                · <span>{event.location}</span>
+                              </>
+                            )}
+                          </p>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginTop: "0.3rem",
+                              gap: "0.6rem",
+                              flexWrap: "wrap"
+                            }}
+                          >
+                            <div>
+                              {interestForIntern ? (
+                                <p
+                                  style={{
+                                    fontSize: "0.76rem",
+                                    color: "#bbf7d0"
+                                  }}
+                                >
+                                  You&apos;ve requested a spot for this event (
+                                  {interestForIntern.status || "requested"}).
+                                </p>
+                              ) : (
+                                <p
+                                  style={{
+                                    fontSize: "0.76rem",
+                                    color: "#9ca3af"
+                                  }}
+                                >
+                                  Requesting a spot signals interest; it doesn&apos;t
+                                  automatically register you. The program decides how
+                                  to allocate funded and unfunded seats.
+                                </p>
+                              )}
+                              <p
+                                style={{
+                                  fontSize: "0.72rem",
+                                  color: "#6b7280",
+                                  marginTop: "0.1rem"
+                                }}
+                              >
+                                Total requests from interns: {totalRequests}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={
+                                !selectedIntern ||
+                                !!interestForIntern ||
+                                requestingEventId === event.id
+                              }
+                              onClick={() => handleRequestSpot(event.id)}
+                              style={{
+                                fontSize: "0.8rem",
+                                padding: "0.4rem 0.9rem",
+                                borderRadius: "999px",
+                                border: "1px solid rgba(129,140,248,0.9)",
+                                backgroundColor: interestForIntern
+                                  ? "rgba(22,163,74,0.15)"
+                                  : requestingEventId === event.id
+                                  ? "rgba(30,64,175,0.7)"
+                                  : "rgba(15,23,42,0.95)",
+                                color: "#e5e7eb",
+                                cursor:
+                                  !selectedIntern ||
+                                  !!interestForIntern ||
+                                  requestingEventId === event.id
+                                    ? "default"
+                                    : "pointer",
+                                opacity:
+                                  !selectedIntern ||
+                                  requestingEventId === event.id
+                                    ? 0.9
+                                    : 1,
+                                whiteSpace: "nowrap"
+                              }}
+                            >
+                              {!selectedIntern
+                                ? "Select intern first"
+                                : interestForIntern
+                                ? "Interest recorded"
+                                : requestingEventId === event.id
+                                ? "Recording interest…"
+                                : "Request a spot"}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </section>
       </div>
     </main>
@@ -499,219 +643,34 @@ export default function InternPDPage() {
 }
 
 /* ───────────────────────────
-   PRESENTATIONAL PIECES
+   Small components & styles
 ──────────────────────────── */
 
-function SummaryPill({ label, value, hint }) {
+function EventTag({ label }) {
+  if (!label) return null;
   return (
-    <div
+    <span
       style={{
-        padding: "0.45rem 0.7rem",
-        borderRadius: "0.75rem",
-        border: "1px solid rgba(148,163,184,0.6)",
-        backgroundColor: "rgba(15,23,42,0.9)",
-        display: "grid",
-        gap: "0.1rem",
-        minWidth: "9rem"
+        fontSize: "0.72rem",
+        borderRadius: "999px",
+        border: "1px solid rgba(148,163,184,0.7)",
+        padding: "0.15rem 0.5rem",
+        color: "#e5e7eb",
+        backgroundColor: "rgba(15,23,42,0.9)"
       }}
     >
-      <p
-        style={{
-          fontSize: "0.72rem",
-          color: "#9ca3af"
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          fontSize: "0.98rem",
-          fontWeight: 500,
-          color: "#e5e7eb"
-        }}
-      >
-        {value}
-      </p>
-      {hint && (
-        <p
-          style={{
-            fontSize: "0.7rem",
-            color: "#6b7280"
-          }}
-        >
-          {hint}
-        </p>
-      )}
-    </div>
+      {label}
+    </span>
   );
 }
 
-function EventCard({
-  event,
-  isPast = false,
-  submitting,
-  submitted,
-  onRequestSpot
-}) {
-  const dateText = event.starts_at
-    ? new Date(event.starts_at).toLocaleString("en-CA", {
-        dateStyle: "medium",
-        timeStyle: "short"
-      })
-    : "Date to be announced";
-
-  const locationLabel = event.location || "Location to be announced";
-
-  const admissionType = event.admission_type || null;
-  const admissionLabel =
-    admissionType === "controlled"
-      ? "Controlled / invite-based"
-      : admissionType === "first_come"
-      ? "First-come, first-served"
-      : "Admission rules TBA";
-
-  const cap =
-    typeof event.capacity === "number"
-      ? event.capacity
-      : Number.isFinite(Number(event.capacity))
-      ? Number(event.capacity)
-      : null;
-
-  const capacityLabel = cap && cap > 0 ? `${cap} seats` : "Capacity TBA";
-
-  const priceLabel =
-    event && event.price != null
-      ? `$${Number(event.price).toFixed(2)}`
-      : "Price TBA";
-
-  const institutionLabel =
-    event && event.institution
-      ? event.institution
-      : "Institution TBA";
-
-  const canClick = !!onRequestSpot && !isPast && !submitted && !submitting;
-
-  let buttonLabel = "Request a spot (demo)";
-  if (submitted) buttonLabel = "Interest recorded";
-  if (submitting) buttonLabel = "Sending…";
-  if (isPast) buttonLabel = "Completed session";
-
-  return (
-    <div className="card-soft" style={{ padding: "0.9rem 1rem" }}>
-      <p
-        style={{
-          fontSize: "0.7rem",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: isPast ? "#9ca3af" : "#bbf7d0",
-          marginBottom: "0.25rem"
-        }}
-      >
-        {isPast ? "Past event" : "Upcoming event"}
-      </p>
-      <h2
-        style={{
-          fontSize: "0.95rem",
-          fontWeight: 500,
-          marginBottom: "0.2rem",
-          color: "#f9fafb"
-        }}
-      >
-        {event.title || "Untitled event"}
-      </h2>
-      <p
-        style={{
-          fontSize: "0.78rem",
-          color: "#cbd5f5",
-          lineHeight: 1.5,
-          marginBottom: "0.35rem"
-        }}
-      >
-        {event.description || "Description forthcoming."}
-      </p>
-
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.2rem"
-        }}
-      >
-        <strong>Date:</strong> {dateText}
-      </p>
-
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.2rem"
-        }}
-      >
-        <strong>Location:</strong> {locationLabel}
-      </p>
-
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.2rem"
-        }}
-      >
-        <strong>Admission:</strong> {admissionLabel}
-      </p>
-
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.2rem"
-        }}
-      >
-        <strong>Capacity:</strong> {capacityLabel}
-      </p>
-
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.2rem"
-        }}
-      >
-        <strong>Price:</strong> {priceLabel}
-      </p>
-
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "#9ca3af",
-          marginBottom: "0.3rem"
-        }}
-      >
-        <strong>Institution:</strong> {institutionLabel}
-      </p>
-
-      <button
-        type="button"
-        onClick={canClick ? onRequestSpot : undefined}
-        disabled={!canClick}
-        style={{
-          marginTop: "0.4rem",
-          fontSize: "0.76rem",
-          padding: "0.35rem 0.7rem",
-          borderRadius: "999px",
-          border: isPast
-            ? "1px solid rgba(75,85,99,0.9)"
-            : submitted
-            ? "1px solid rgba(52,211,153,0.9)"
-            : "1px solid rgba(96,165,250,0.9)",
-          backgroundColor: "rgba(15,23,42,0.9)",
-          color: submitted ? "#bbf7d0" : "#e5e7eb",
-          cursor: canClick ? "pointer" : "default",
-          opacity: isPast || submitted || submitting ? 0.8 : 1
-        }}
-      >
-        {buttonLabel}
-      </button>
-    </div>
-  );
-}
+const selectStyle = {
+  fontSize: "0.78rem",
+  padding: "0.3rem 0.6rem",
+  borderRadius: "999px",
+  border: "1px solid rgba(75,85,99,0.9)",
+  backgroundColor: "rgba(15,23,42,1)",
+  color: "#f9fafb",
+  minWidth: "12rem",
+  outline: "none"
+};
