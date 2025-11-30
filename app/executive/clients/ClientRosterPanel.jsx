@@ -12,6 +12,9 @@ export default function ClientRosterPanel() {
   const [statusTone, setStatusTone] = useState("neutral"); // neutral | success | error
   const [actionId, setActionId] = useState(null);
 
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
@@ -55,6 +58,10 @@ export default function ClientRosterPanel() {
 
     load();
   }, [supabase]);
+
+  /* ───────────────────────────
+     Actions
+  ─────────────────────────── */
 
   const handleMarkInactive = async (client) => {
     if (!supabase) {
@@ -115,7 +122,7 @@ export default function ClientRosterPanel() {
     }
 
     const confirmed = window.confirm(
-      `This will permanently delete client ${client.full_name} from the roster. This is usually not recommended if you need grant stats or audit trails.\n\nAre you sure you want to continue?`
+      `This will permanently delete client ${client.full_name} from the roster.\n\nFor real-world use, marking inactive is safer (keeps stats). For this prototype, delete is useful for cleanup.\n\nAre you sure you want to continue?`
     );
     if (!confirmed) return;
 
@@ -155,6 +162,31 @@ export default function ClientRosterPanel() {
     }
   };
 
+  /* ───────────────────────────
+     Filtering in UI
+  ─────────────────────────── */
+
+  const filteredClients = clients.filter((c) => {
+    const statusNorm = (c.status || "").toLowerCase();
+
+    if (filterStatus !== "all" && statusNorm !== filterStatus) {
+      return false;
+    }
+
+    if (!searchTerm.trim()) return true;
+
+    const haystack = [
+      c.full_name || "",
+      c.referral_source || "",
+      (c.notes || "").slice(0, 200),
+      Array.isArray(c.characteristics) ? c.characteristics.join(", ") : ""
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(searchTerm.toLowerCase());
+  });
+
   return (
     <section
       style={{
@@ -186,9 +218,89 @@ export default function ClientRosterPanel() {
             maxWidth: "40rem"
           }}
         >
-          A simple roster of all clients in the system. You can mark clients as{" "}
-          <strong>inactive</strong> (recommended, keeps them for stats) or, if
-          needed for cleanup, <strong>delete</strong> the row entirely.
+          A simple roster of all clients in the system. You can{" "}
+          <strong>filter by status, search by OWL ID or notes</strong>, mark
+          clients as <strong>inactive</strong> (recommended for discharges), or
+          delete rows entirely when you&apos;re cleaning up test data.
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.6rem",
+          alignItems: "center"
+        }}
+      >
+        <div>
+          <p
+            style={{
+              fontSize: "0.7rem",
+              color: "#9ca3af",
+              marginBottom: "0.15rem"
+            }}
+          >
+            Status filter
+          </p>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{
+              fontSize: "0.78rem",
+              padding: "0.28rem 0.6rem",
+              borderRadius: "999px",
+              border: "1px solid rgba(75,85,99,0.9)",
+              backgroundColor: "rgba(15,23,42,1)",
+              color: "#e5e7eb"
+            }}
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="waitlisted">Waitlisted</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div style={{ minWidth: "14rem" }}>
+          <p
+            style={{
+              fontSize: "0.7rem",
+              color: "#9ca3af",
+              marginBottom: "0.15rem"
+            }}
+          >
+            Search (OWL ID, referral, characteristics, notes)
+          </p>
+          <input
+            type="text"
+            value={searchTerm}
+            placeholder="Type to search…"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              fontSize: "0.78rem",
+              padding: "0.3rem 0.6rem",
+              borderRadius: "999px",
+              border: "1px solid rgba(75,85,99,0.9)",
+              backgroundColor: "rgba(15,23,42,1)",
+              color: "#e5e7eb",
+              minWidth: "14rem"
+            }}
+          />
+        </div>
+
+        <p
+          style={{
+            fontSize: "0.72rem",
+            color: "#9ca3af"
+          }}
+        >
+          Showing{" "}
+          <strong>
+            {filteredClients.length} of {clients.length}
+          </strong>{" "}
+          clients
         </p>
       </div>
 
@@ -227,6 +339,16 @@ export default function ClientRosterPanel() {
           No clients currently exist in the roster. Use the &quot;Add client&quot;
           panel above to create new entries.
         </p>
+      ) : filteredClients.length === 0 ? (
+        <p
+          style={{
+            fontSize: "0.78rem",
+            color: "#e5e7eb"
+          }}
+        >
+          No clients matched the current filters. Try clearing the search or
+          selecting &quot;All statuses&quot;.
+        </p>
       ) : (
         <div
           style={{
@@ -258,7 +380,7 @@ export default function ClientRosterPanel() {
               </tr>
             </thead>
             <tbody>
-              {clients.map((c) => {
+              {filteredClients.map((c) => {
                 const createdLabel = c.created_at
                   ? new Date(c.created_at).toLocaleString("en-CA", {
                       dateStyle: "medium",
@@ -338,6 +460,10 @@ export default function ClientRosterPanel() {
     </section>
   );
 }
+
+/* ───────────────────────────
+   Small components
+──────────────────────────── */
 
 function StatusBadge({ status }) {
   const s = (status || "active").toLowerCase();

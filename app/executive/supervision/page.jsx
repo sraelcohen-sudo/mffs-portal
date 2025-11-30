@@ -1,8 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 import InternReadinessPanel from "./InternReadinessPanel";
-import CreateInternPanel from "./CreateInternPanel"; // if you already have this; otherwise you can remove this line & its usage.
+import SupervisorAssignmentsPanel from "./SupervisorAssignmentsPanel";
+// import CreateInternPanel from "./CreateInternPanel"; // uncomment if you’re using this
 
 export default async function ExecutiveSupervisionPage() {
   const supabase = createSupabaseClient();
@@ -73,7 +76,6 @@ export default async function ExecutiveSupervisionPage() {
 
         if (isMissingTable) {
           supervisionSessions = [];
-          // don't override loadError if already set
         } else {
           supervisionSessions = [];
           loadError =
@@ -162,7 +164,8 @@ export default async function ExecutiveSupervisionPage() {
               <p className="section-subtitle">
                 At-a-glance view of how many interns are in the program, how many are
                 ready for clients, and how much supervision time has been logged.
-                This is where you control onboarding status and readiness.
+                This is where you control onboarding status, readiness, and supervisor
+                assignments.
               </p>
             </div>
           </header>
@@ -253,7 +256,7 @@ export default async function ExecutiveSupervisionPage() {
             )}
           </section>
 
-          {/* Coverage table (read-only for now) */}
+          {/* Coverage table (read-only) */}
           <section
             style={{
               padding: "0.8rem 1.0rem",
@@ -364,6 +367,9 @@ export default async function ExecutiveSupervisionPage() {
 
           {/* Editable readiness / onboarding controls */}
           <InternReadinessPanel />
+
+          {/* Supervisor ↔ intern mapping */}
+          <SupervisorAssignmentsPanel />
         </section>
       </div>
     </main>
