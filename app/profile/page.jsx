@@ -80,7 +80,6 @@ export default function ProfilePage() {
       } else if (role === "intern") {
         tableName = "intern_logins";
         // For interns, we stored intern_profiles.id in mffs_user_id
-        // so we filter on intern_id instead of login id.
         filterColumn = "intern_id";
       } else {
         setStatusTone("error");
@@ -89,7 +88,7 @@ export default function ProfilePage() {
         return;
       }
 
-      // First, ensure the current password is correct by updating with a filter
+      // Update ONLY if current password matches
       const { data, error } = await supabase
         .from(tableName)
         .update({ password: newPassword })
@@ -164,8 +163,8 @@ export default function ProfilePage() {
               <p className="section-subtitle">
                 You are currently logged in as:{" "}
                 <span style={{ color: "#e5e7eb" }}>{roleLabel}</span>. Use this
-                page to update your password. In a production deployment, this
-                would be behind full authentication.
+                page to update your password. All roles (executive, supervisor,
+                intern) use the same screen.
               </p>
             </div>
           </header>
