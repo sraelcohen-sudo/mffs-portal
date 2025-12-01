@@ -7,46 +7,45 @@ export default function SupervisorDashboard() {
       <div className="main-shell-inner main-shell-inner--with-sidebar">
         {/* Sidebar */}
         <aside className="sidebar">
-          <p className="sidebar-title">Supervisor portal</p>
+  <div className="sidebar-header">
+    <h2 className="sidebar-title">Supervisor portal</h2>
+    <p className="sidebar-subtitle">
+      View your interns, supervision logs, and hours summaries.
+    </p>
+  </div>
 
-          <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Overview</div>
-            <div className="sidebar-link-subtitle">Today</div>
-          </button>
+  <nav className="sidebar-nav">
+    <Link href="/supervisor">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Overview</div>
+        <div className="sidebar-link-subtitle">Supervision</div>
+      </button>
+    </Link>
 
-          <Link href="/supervisor/interns">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Assigned interns</div>
-              <div className="sidebar-link-subtitle">Caseload</div>
-            </button>
-          </Link>
+    <Link href="/supervisor/supervision">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Supervision log</div>
+        <div className="sidebar-link-subtitle">Sessions & notes</div>
+      </button>
+    </Link>
 
-          <Link href="/supervisor/supervision">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Supervision sessions</div>
-              <div className="sidebar-link-subtitle">Logs</div>
-            </button>
-          </Link>
+    <Link href="/supervisor/clients">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Clients</div>
+        <div className="sidebar-link-subtitle">Assigned caseload</div>
+      </button>
+    </Link>
 
-          <Link href="/supervisor/invoices">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Invoices & receipts</div>
-              <div className="sidebar-link-subtitle">Payment</div>
-            </button>
-          </Link>
+    {/* NEW: Profile tab */}
+    <Link href="/profile">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Profile</div>
+        <div className="sidebar-link-subtitle">Login & details</div>
+      </button>
+    </Link>
+  </nav>
+</aside>
 
-          <button className="sidebar-link" type="button">
-            <div className="sidebar-link-title">Professional development</div>
-            <div className="sidebar-link-subtitle">MFFS-only</div>
-          </button>
-
-          <Link href="/login">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Back to login</div>
-              <div className="sidebar-link-subtitle">Switch role</div>
-            </button>
-          </Link>
-        </aside>
 
         {/* Main content */}
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>

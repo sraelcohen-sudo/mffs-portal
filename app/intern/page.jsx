@@ -162,34 +162,45 @@ export default function InternDashboard() {
       <div className="main-shell-inner main-shell-inner--with-sidebar">
         {/* SIDEBAR */}
         <aside className="sidebar">
-          <p className="sidebar-title">Intern portal</p>
+  <div className="sidebar-header">
+    <h2 className="sidebar-title">Intern portal</h2>
+    <p className="sidebar-subtitle">
+      Track your clients, supervision sessions, and hours.
+    </p>
+  </div>
 
-          <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Overview</div>
-            <div className="sidebar-link-subtitle">Your caseload</div>
-          </button>
+  <nav className="sidebar-nav">
+    <Link href="/intern">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Overview</div>
+        <div className="sidebar-link-subtitle">Dashboard</div>
+      </button>
+    </Link>
 
-          <Link href="/intern/supervision">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Supervision</div>
-              <div className="sidebar-link-subtitle">Hours & notes</div>
-            </button>
-          </Link>
+    <Link href="/intern/clients">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Clients</div>
+        <div className="sidebar-link-subtitle">Active caseload</div>
+      </button>
+    </Link>
 
-          <Link href="/intern/pd">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">PD & events</div>
-              <div className="sidebar-link-subtitle">Learning plan</div>
-            </button>
-          </Link>
+    <Link href="/intern/supervision">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Supervision log</div>
+        <div className="sidebar-link-subtitle">Sessions & feedback</div>
+      </button>
+    </Link>
 
-          <Link href="/login">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Back to login</div>
-              <div className="sidebar-link-subtitle">Switch role</div>
-            </button>
-          </Link>
-        </aside>
+    {/* NEW: Profile tab */}
+    <Link href="/profile">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Profile</div>
+        <div className="sidebar-link-subtitle">Login & practicum details</div>
+      </button>
+    </Link>
+  </nav>
+</aside>
+
 
         {/* MAIN CONTENT */}
         <section className="card" style={{ padding: "1.3rem 1.4rem" }}>

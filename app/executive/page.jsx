@@ -9,38 +9,45 @@ export default function ExecutiveHomePage() {
             EXECUTIVE SIDEBAR 
         ─────────────────────────── */}
         <aside className="sidebar">
-          <p className="sidebar-title">Executive portal</p>
+  <div className="sidebar-header">
+    <h2 className="sidebar-title">Executive portal</h2>
+    <p className="sidebar-subtitle">
+      High-level view of interns, supervision coverage, and PD.
+    </p>
+  </div>
 
-          {/* Overview */}
-          <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Overview</div>
-            <div className="sidebar-link-subtitle">Program</div>
-          </button>
+  <nav className="sidebar-nav">
+    <Link href="/executive">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Overview</div>
+        <div className="sidebar-link-subtitle">Program</div>
+      </button>
+    </Link>
 
-          {/* NEW — Supervision Overview */}
-          <Link href="/executive/supervision">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Supervision overview</div>
-              <div className="sidebar-link-subtitle">Hours & coverage</div>
-            </button>
-          </Link>
+    <Link href="/executive/supervision">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Supervision</div>
+        <div className="sidebar-link-subtitle">Coverage & assignments</div>
+      </button>
+    </Link>
 
-          {/* PD & Events */}
-          <Link href="/executive/pd">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">PD & events</div>
-              <div className="sidebar-link-subtitle">Intern ecosystem</div>
-            </button>
-          </Link>
+    <Link href="/executive/pd">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">PD events</div>
+        <div className="sidebar-link-subtitle">Training & interests</div>
+      </button>
+    </Link>
 
-          {/* Back to login */}
-          <Link href="/login">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Back to login</div>
-              <div className="sidebar-link-subtitle">Switch role</div>
-            </button>
-          </Link>
-        </aside>
+    {/* NEW: Profile tab */}
+    <Link href="/profile">
+      <button className="sidebar-link" type="button">
+        <div className="sidebar-link-title">Profile</div>
+        <div className="sidebar-link-subtitle">Login & details</div>
+      </button>
+    </Link>
+  </nav>
+</aside>
+
 
         {/* ───────────────────────────
             EXECUTIVE MAIN CONTENT
