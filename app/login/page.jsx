@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 
@@ -8,79 +8,103 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseClient(), []);
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
   const login = async () => {
-    setLoading(true);
     setStatus("");
+    if (!email || !password) {
+      setStatus("Please enter both email and password.");
+      return;
+    }
 
-    if (!username || !password) {
-      setStatus("Please enter both username and password.");
+    setLoading(true);
+
+    try {
+      // 1. Auth with Supabase Auth (hashed password handled automatically)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Auth error:", error);
+        setStatus(error.message || "Invalid credentials.");
+        setLoading(false);
+        return;
+      }
+
+      const user = data.user;
+      if (!user) {
+        setStatus("Login failed, please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Determine role by checking each table by auth_user_id
+      // Executive?
+      const { data: exec } = await supabase
+        .from("executives")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (exec) {
+        window.localStorage.setItem("mffs_role", "executive");
+        window.localStorage.setItem("mffs_user_id", exec.id);
+        router.push("/executive");
+        return;
+      }
+
+      // Supervisor?
+      const { data: sup } = await supabase
+        .from("supervisors")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (sup) {
+        window.localStorage.setItem("mffs_role", "supervisor");
+        window.localStorage.setItem("mffs_user_id", sup.id);
+        router.push("/supervisor");
+        return;
+      }
+
+      // Intern?
+      const { data: intern } = await supabase
+        .from("intern_profiles")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (intern) {
+        window.localStorage.setItem("mffs_role", "intern");
+        window.localStorage.setItem("mffs_user_id", intern.id);
+        router.push("/intern");
+        return;
+      }
+
+      // If no role matched
+      setStatus(
+        "Your account is authenticated, but no role is assigned. Please contact an administrator."
+      );
+    } catch (e) {
+      console.error("Unexpected login error:", e);
+      setStatus("Unexpected error. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // 1. Try executive login
-    let { data: exec } = await supabase
-      .from("executive_logins")
-      .select("*")
-      .eq("email", username)
-      .eq("password", password)
-      .maybeSingle();
-
-    if (exec) {
-      localStorage.setItem("mffs_role", "executive");
-      localStorage.setItem("mffs_user_id", exec.id);
-      router.push("/executive");
-      return;
-    }
-
-    // 2. Try supervisor login
-    let { data: sup } = await supabase
-      .from("supervisor_logins")
-      .select("*")
-      .eq("email", username)
-      .eq("password", password)
-      .maybeSingle();
-
-    if (sup) {
-      localStorage.setItem("mffs_role", "supervisor");
-      localStorage.setItem("mffs_user_id", sup.id);
-      router.push("/supervisor");
-      return;
-    }
-
-    // 3. Try intern login
-    let { data: intern } = await supabase
-      .from("intern_logins")
-      .select("id, intern_id")
-      .eq("email", username)
-      .eq("password", password)
-      .maybeSingle();
-
-    if (intern) {
-      localStorage.setItem("mffs_role", "intern");
-      localStorage.setItem("mffs_user_id", intern.intern_id);
-      router.push("/intern");
-      return;
-    }
-
-    // If all three tables fail
-    setStatus("Invalid username or password.");
-    setLoading(false);
   };
 
   return (
     <main className="main-shell">
       <div className="main-shell-inner">
-
         <section className="card" style={{ padding: "2rem" }}>
           <h1 className="section-title">Login</h1>
           <p className="section-subtitle">
-            Enter your username and password to access the portal.
+            Use your email and password to access the MFFS portal.
           </p>
 
           {status && (
@@ -88,19 +112,12 @@ export default function LoginPage() {
           )}
 
           <div style={{ marginTop: "1.5rem", display: "grid", gap: "1rem" }}>
-
             <input
-              type="text"
-              placeholder="Username (email)"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              style={{
-                padding: "0.75rem",
-                borderRadius: "8px",
-                border: "1px solid #475569",
-                backgroundColor: "#0f172a",
-                color: "white",
-              }}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={inputStyle}
             />
 
             <input
@@ -108,13 +125,7 @@ export default function LoginPage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{
-                padding: "0.75rem",
-                borderRadius: "8px",
-                border: "1px solid #475569",
-                backgroundColor: "#0f172a",
-                color: "white",
-              }}
+              style={inputStyle}
             />
 
             <button
@@ -139,3 +150,11 @@ export default function LoginPage() {
     </main>
   );
 }
+
+const inputStyle = {
+  padding: "0.75rem",
+  borderRadius: "8px",
+  border: "1px solid #475569",
+  backgroundColor: "#0f172a",
+  color: "white",
+};
