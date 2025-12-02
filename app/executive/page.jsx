@@ -24,7 +24,7 @@ export default function ExecutivePage() {
     }
   }, [router]);
 
-  // 🔓 Logout handler (always works, even if Supabase misbehaves)
+  // 🔓 Logout handler
   const handleLogout = async () => {
     try {
       if (supabase) {
