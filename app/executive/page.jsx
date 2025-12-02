@@ -11,20 +11,21 @@ export default function ExecutivePage() {
 
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");
-  const [stats, setStats] = useState({
-    internCount: null,
-    activeClientCount: null,
-    waitlistedClientCount: null,
-    upcomingPdCount: null,
-  });
 
   // 🔐 Session / role guard
   useEffect(() => {
     const checkSession = async () => {
+      if (!supabase) {
+        // If Supabase isn't configured, just bounce to login
+        router.push("/login");
+        return;
+      }
+
       const { data } = await supabase.auth.getUser();
-      const role = typeof window !== "undefined"
-        ? window.localStorage.getItem("mffs_role")
-        : null;
+      const role =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("mffs_role")
+          : null;
 
       if (!data.user || role !== "executive") {
         router.push("/login");
@@ -36,49 +37,12 @@ export default function ExecutivePage() {
     checkSession();
   }, [supabase, router]);
 
-  // 📊 Basic dashboard stats (safe if tables are empty)
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const [{ count: interns }, { count: activeClients }, { count: waitlistedClients }, { count: upcomingPd }] =
-          await Promise.all([
-            supabase
-              .from("intern_profiles")
-              .select("id", { count: "exact", head: true }),
-            supabase
-              .from("clients")
-              .select("id", { count: "exact", head: true })
-              .eq("status", "active"),
-            supabase
-              .from("clients")
-              .select("id", { count: "exact", head: true })
-              .eq("status", "waitlisted"),
-            supabase
-              .from("professional_development_events")
-              .select("id", { count: "exact", head: true }),
-          ]);
-
-        setStats({
-          internCount: interns ?? 0,
-          activeClientCount: activeClients ?? 0,
-          waitlistedClientCount: waitlistedClients ?? 0,
-          upcomingPdCount: upcomingPd ?? 0,
-        });
-      } catch (e) {
-        console.error("Error loading executive stats:", e);
-        setStatus("Could not load all dashboard stats (prototype only).");
-      }
-    };
-
-    if (ready) {
-      loadStats();
-    }
-  }, [ready, supabase]);
-
   // 🔓 Logout handler
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
     } catch (e) {
       console.error("Error signing out:", e);
     }
@@ -106,18 +70,21 @@ export default function ExecutivePage() {
   return (
     <main className="main-shell">
       <div className="main-shell-inner">
-        {/* Sidebar */}
+        {/* Sidebar – same structure as supervisor/intern */}
         <aside className="sidebar">
           <div className="sidebar-header">
             <h2 className="sidebar-title">Executive portal</h2>
             <p className="sidebar-subtitle">
-              High-level view of interns, supervision, clients, and PD.
+              High-level view of interns, supervision coverage, clients, and PD.
             </p>
           </div>
 
           <nav className="sidebar-nav">
             <Link href="/executive">
-              <button className="sidebar-link" type="button">
+              <button
+                className="sidebar-link sidebar-link-active"
+                type="button"
+              >
                 <div className="sidebar-link-title">Overview</div>
                 <div className="sidebar-link-subtitle">Program</div>
               </button>
@@ -132,11 +99,29 @@ export default function ExecutivePage() {
               </button>
             </Link>
 
+            <Link href="/executive/clients">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Clients</div>
+                <div className="sidebar-link-subtitle">
+                  Capacity & waitlist
+                </div>
+              </button>
+            </Link>
+
             <Link href="/executive/pd">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">PD events</div>
                 <div className="sidebar-link-subtitle">
                   Training & interests
+                </div>
+              </button>
+            </Link>
+
+            <Link href="/executive/grant">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Grant data</div>
+                <div className="sidebar-link-subtitle">
+                  Reporting snapshot
                 </div>
               </button>
             </Link>
@@ -152,7 +137,7 @@ export default function ExecutivePage() {
           </nav>
         </aside>
 
-        {/* Main content */}
+        {/* Main content – same header pattern as supervisor/intern */}
         <section className="main-content">
           <header className="section-header">
             <div>
@@ -168,12 +153,19 @@ export default function ExecutivePage() {
               </p>
               <h1 className="section-title">Program dashboard</h1>
               <p className="section-subtitle">
-                At-a-glance program health: interns, supervision coverage,
-                clients, and upcoming PD events.
+                A home base for understanding intern capacity, supervision
+                coverage, client load, and professional development activity.
               </p>
             </div>
 
-            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.75rem",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
               {status && (
                 <span
                   style={{
@@ -203,52 +195,44 @@ export default function ExecutivePage() {
             </div>
           </header>
 
-          {/* Overview tiles */}
+          {/* Overview tiles – same “feel” as the other portals */}
           <div className="grid grid-tiles">
             <article className="card">
-              <h2 className="card-title">Interns in program</h2>
-              <p className="card-metric">
-                {stats.internCount === null ? "—" : stats.internCount}
-              </p>
+              <h2 className="card-title">Intern workforce</h2>
               <p className="card-caption">
-                Total interns currently in the program (all statuses).
+                Use the Supervision and Clients sections to see who is ready for
+                clients, who still needs onboarding, and how interns are
+                distributed across supervisors and sites.
               </p>
             </article>
 
             <article className="card">
-              <h2 className="card-title">Active clients</h2>
-              <p className="card-metric">
-                {stats.activeClientCount === null ? "—" : stats.activeClientCount}
-              </p>
+              <h2 className="card-title">Supervision coverage</h2>
               <p className="card-caption">
-                Clients with an active status across all interns.
+                Ensure every intern has appropriate individual and group
+                supervision, and quickly identify where additional supervisor
+                time may be needed.
               </p>
             </article>
 
             <article className="card">
-              <h2 className="card-title">Waitlisted clients</h2>
-              <p className="card-metric">
-                {stats.waitlistedClientCount === null
-                  ? "—"
-                  : stats.waitlistedClientCount}
-              </p>
+              <h2 className="card-title">Client capacity & waitlist</h2>
               <p className="card-caption">
-                Clients waiting to be matched with an intern.
+                Track active and waitlisted clients, support equity-focused
+                triage, and align caseloads with intern readiness and supervisor
+                oversight.
               </p>
             </article>
 
             <article className="card">
-              <h2 className="card-title">PD events</h2>
-              <p className="card-metric">
-                {stats.upcomingPdCount === null ? "—" : stats.upcomingPdCount}
-              </p>
+              <h2 className="card-title">PD & grant reporting</h2>
               <p className="card-caption">
-                Professional development offerings configured in the portal.
+                Configure professional development events and pull
+                email-ready summaries of client and service data for funders,
+                boards, and internal planning.
               </p>
             </article>
           </div>
-
-          {/* You can keep or extend whatever other executive sections you had here */}
         </section>
       </div>
     </main>
