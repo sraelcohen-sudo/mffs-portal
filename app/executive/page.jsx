@@ -10,34 +10,21 @@ export default function ExecutivePage() {
   const supabase = useMemo(() => createSupabaseClient(), []);
 
   const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState("");
 
-  // 🔐 Session / role guard
+  // 🔐 Simple role guard – only use localStorage, no async auth check
   useEffect(() => {
-    const checkSession = async () => {
-      if (!supabase) {
-        // If Supabase isn't configured, just bounce to login
-        router.push("/login");
-        return;
-      }
+    if (typeof window === "undefined") return;
 
-      const { data } = await supabase.auth.getUser();
-      const role =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("mffs_role")
-          : null;
+    const role = window.localStorage.getItem("mffs_role");
 
-      if (!data.user || role !== "executive") {
-        router.push("/login");
-      } else {
-        setReady(true);
-      }
-    };
+    if (role !== "executive") {
+      router.push("/login");
+    } else {
+      setReady(true);
+    }
+  }, [router]);
 
-    checkSession();
-  }, [supabase, router]);
-
-  // 🔓 Logout handler
+  // 🔓 Logout handler (always works, even if Supabase misbehaves)
   const handleLogout = async () => {
     try {
       if (supabase) {
@@ -46,10 +33,12 @@ export default function ExecutivePage() {
     } catch (e) {
       console.error("Error signing out:", e);
     }
+
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("mffs_role");
       window.localStorage.removeItem("mffs_user_id");
     }
+
     router.push("/login");
   };
 
@@ -70,7 +59,7 @@ export default function ExecutivePage() {
   return (
     <main className="main-shell">
       <div className="main-shell-inner">
-        {/* Sidebar – same structure as supervisor/intern */}
+        {/* Sidebar – mirrors supervisor / intern layout */}
         <aside className="sidebar">
           <div className="sidebar-header">
             <h2 className="sidebar-title">Executive portal</h2>
@@ -137,7 +126,7 @@ export default function ExecutivePage() {
           </nav>
         </aside>
 
-        {/* Main content – same header pattern as supervisor/intern */}
+        {/* Main content – same concept as supervisor / intern */}
         <section className="main-content">
           <header className="section-header">
             <div>
@@ -166,17 +155,20 @@ export default function ExecutivePage() {
                 flexWrap: "wrap",
               }}
             >
-              {status && (
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#f97373",
-                    maxWidth: "16rem",
-                  }}
-                >
-                  {status}
-                </span>
-              )}
+              <span
+                style={{
+                  padding: "0.15rem 0.6rem",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(148,163,184,0.7)",
+                  fontSize: "0.75rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "#e5e7eb",
+                  backgroundColor: "rgba(15,23,42,0.9)",
+                }}
+              >
+                Executive
+              </span>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -195,7 +187,6 @@ export default function ExecutivePage() {
             </div>
           </header>
 
-          {/* Overview tiles – same “feel” as the other portals */}
           <div className="grid grid-tiles">
             <article className="card">
               <h2 className="card-title">Intern workforce</h2>
