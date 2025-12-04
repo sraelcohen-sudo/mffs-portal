@@ -19,10 +19,9 @@ export default function ExecutivePage() {
     totalSupervisionHours: null,
   });
 
-  // 🔐 Very simple role guard – rely on localStorage only
+  // 🔐 Very simple role guard – same pattern as other portals
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const role = window.localStorage.getItem("mffs_role");
     if (role !== "executive") {
       router.push("/login");
@@ -31,56 +30,52 @@ export default function ExecutivePage() {
     }
   }, [router]);
 
-  // 📊 Load snapshot metrics (mirrors the style of the Supervision page)
+  // 📊 Snapshot numbers – “copy” of how the Supervision page works
   useEffect(() => {
     if (!ready || !supabase) return;
 
     const loadStats = async () => {
       try {
         const [
-          { count: internCount },
-          { count: activeInterns },
-          { count: readyForClients },
-          { data: supervisionRows, error: supervisionError },
+          internsRes,
+          activeRes,
+          readyRes,
+          supervisionRes,
         ] = await Promise.all([
-          // All interns
           supabase
             .from("intern_profiles")
             .select("id", { count: "exact", head: true }),
-
-          // Active interns (status = 'active')
           supabase
             .from("intern_profiles")
             .select("id", { count: "exact", head: true })
             .eq("status", "active"),
-
-          // Ready for clients (ready_for_clients = true)
           supabase
             .from("intern_profiles")
             .select("id", { count: "exact", head: true })
             .eq("ready_for_clients", true),
-
-          // Supervision hours (sum of duration_hours)
-          supabase
-            .from("supervision_sessions")
-            .select("duration_hours"),
+          supabase.from("supervision_sessions").select("duration_hours"),
         ]);
 
-        if (supervisionError) throw supervisionError;
+        const internCount = internsRes.count ?? 0;
+        const activeInterns = activeRes.count ?? 0;
+        const readyForClients = readyRes.count ?? 0;
 
-        const totalHours = (supervisionRows || []).reduce(
-          (sum, row) => sum + (typeof row.duration_hours === "number" ? row.duration_hours : 0),
+        if (supervisionRes.error) throw supervisionRes.error;
+        const totalSupervisionHours = (supervisionRes.data || []).reduce(
+          (sum, row) =>
+            sum +
+            (typeof row.duration_hours === "number" ? row.duration_hours : 0),
           0
         );
 
         setStats({
-          internCount: internCount ?? 0,
-          activeInterns: activeInterns ?? 0,
-          readyForClients: readyForClients ?? 0,
-          totalSupervisionHours: totalHours,
+          internCount,
+          activeInterns,
+          readyForClients,
+          totalSupervisionHours,
         });
       } catch (e) {
-        console.error("Error loading executive snapshot stats:", e);
+        console.error("Error loading executive overview stats:", e);
         setStatus("Could not load program snapshot (prototype only).");
       }
     };
@@ -88,7 +83,7 @@ export default function ExecutivePage() {
     loadStats();
   }, [ready, supabase]);
 
-  // 🔓 Logout handler
+  // 🔓 Logout
   const handleLogout = async () => {
     try {
       if (supabase) {
@@ -97,12 +92,10 @@ export default function ExecutivePage() {
     } catch (e) {
       console.error("Error signing out:", e);
     }
-
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("mffs_role");
       window.localStorage.removeItem("mffs_user_id");
     }
-
     router.push("/login");
   };
 
@@ -123,7 +116,7 @@ export default function ExecutivePage() {
   return (
     <main className="main-shell">
       <div className="main-shell-inner">
-        {/* ───────────────── Sidebar (same as other executive pages) ───────────────── */}
+        {/* ────────── SIDEBAR (same wording as screenshot 1) ────────── */}
         <aside className="sidebar">
           <div className="sidebar-header">
             <h2 className="sidebar-title">EXECUTIVE PORTAL</h2>
@@ -164,7 +157,9 @@ export default function ExecutivePage() {
             <Link href="/executive/pd">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">PD & events</div>
-                <div className="sidebar-link-subtitle">Intern ecosystem</div>
+                <div className="sidebar-link-subtitle">
+                  Intern ecosystem
+                </div>
               </button>
             </Link>
 
@@ -197,10 +192,10 @@ export default function ExecutivePage() {
           </nav>
         </aside>
 
-        {/* ───────────────── Main content card (match Supervision layout) ───────────────── */}
+        {/* ────────── MAIN CONTENT – mirror the Supervision layout ────────── */}
         <section className="main-content">
           <section className="card">
-            {/* Header inside the card – like the Supervision page */}
+            {/* Top header inside the card (chip + title + description + logout) */}
             <header
               className="section-header"
               style={{ paddingBottom: "1.5rem" }}
@@ -213,16 +208,15 @@ export default function ExecutivePage() {
                 <p className="section-subtitle">
                   At-a-glance view of intern capacity, supervision coverage,
                   client load, and professional development activity. This is
-                  where you get a quick sense of how the program is functioning
-                  before dropping into the detailed views.
+                  where you start before dropping into the detailed views.
                 </p>
               </div>
 
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
                   gap: "0.75rem",
+                  alignItems: "center",
                   flexWrap: "wrap",
                 }}
               >
@@ -256,12 +250,9 @@ export default function ExecutivePage() {
               </div>
             </header>
 
-            {/* Snapshot metrics row – stylistically similar to Supervision snapshot */}
+            {/* Snapshot row – this is the part that should “feel” like the first screenshot */}
             <section style={{ marginBottom: "2rem" }}>
-              <h2
-                className="card-label"
-                style={{ marginBottom: "0.75rem", fontSize: "0.75rem" }}
-              >
+              <h2 className="card-label" style={{ marginBottom: "0.75rem" }}>
                 PROGRAM SNAPSHOT
               </h2>
               <div className="grid grid-tiles">
@@ -286,22 +277,27 @@ export default function ExecutivePage() {
                   <p className="card-metric">
                     {stats.readyForClients ?? "—"}
                   </p>
-                  <p className="card-caption">
-                    ready_for_clients = true
-                  </p>
+                  <p className="card-caption">ready_for_clients = true</p>
                 </article>
 
                 <article className="card">
                   <h3 className="card-label">Total supervision hours</h3>
                   <p className="card-metric">
-                    {stats.totalSupervisionHours?.toFixed(1) ?? "0.0"}
+                    {stats.totalSupervisionHours != null
+                      ? stats.totalSupervisionHours.toFixed(1)
+                      : "0.0"}
                   </p>
                   <p className="card-caption">Sum of duration_hours</p>
                 </article>
               </div>
+              <p className="card-caption" style={{ marginTop: "0.75rem" }}>
+                As supervision logs accumulate, you’ll be able to compare hours
+                per intern and per supervisor, and combine this with client
+                assignment data to ensure safe caseloads.
+              </p>
             </section>
 
-            {/* Narrative tiles, like in your current overview */}
+            {/* Lower text tiles – simple narrative sections, same vibe as Supervision page */}
             <div className="grid grid-tiles">
               <article className="card">
                 <h2 className="card-title">Intern workforce</h2>
@@ -316,8 +312,8 @@ export default function ExecutivePage() {
                 <h2 className="card-title">Supervision coverage</h2>
                 <p className="card-caption">
                   Ensure every intern has appropriate individual and group
-                  supervision. The Supervision view highlights onboarding status,
-                  supervision focus, and cumulative hours.
+                  supervision. The Supervision view highlights onboarding
+                  status, supervision focus, and cumulative hours.
                 </p>
               </article>
 
@@ -326,7 +322,7 @@ export default function ExecutivePage() {
                 <p className="card-caption">
                   Track active and waitlisted clients, support equity-focused
                   triage, and align caseloads with intern readiness and
-                  supervisor oversight in the Clients section.
+                  supervisor oversight.
                 </p>
               </article>
 
