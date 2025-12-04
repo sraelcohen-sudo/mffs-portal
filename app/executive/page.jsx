@@ -11,8 +11,15 @@ export default function ExecutivePage() {
   const supabase = useMemo(() => createSupabaseClient(), []);
 
   const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState("");
+  const [stats, setStats] = useState({
+    internCount: null,
+    activeInterns: null,
+    readyForClients: null,
+    totalSupervisionHours: null,
+  });
 
-  // 🔐 Very simple role guard: rely on localStorage
+  // 🔐 Very simple role guard – rely on localStorage only
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -23,6 +30,63 @@ export default function ExecutivePage() {
       setReady(true);
     }
   }, [router]);
+
+  // 📊 Load snapshot metrics (mirrors the style of the Supervision page)
+  useEffect(() => {
+    if (!ready || !supabase) return;
+
+    const loadStats = async () => {
+      try {
+        const [
+          { count: internCount },
+          { count: activeInterns },
+          { count: readyForClients },
+          { data: supervisionRows, error: supervisionError },
+        ] = await Promise.all([
+          // All interns
+          supabase
+            .from("intern_profiles")
+            .select("id", { count: "exact", head: true }),
+
+          // Active interns (status = 'active')
+          supabase
+            .from("intern_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "active"),
+
+          // Ready for clients (ready_for_clients = true)
+          supabase
+            .from("intern_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("ready_for_clients", true),
+
+          // Supervision hours (sum of duration_hours)
+          supabase
+            .from("supervision_sessions")
+            .select("duration_hours"),
+        ]);
+
+        if (supervisionError) throw supervisionError;
+
+        const totalHours = (supervisionRows || []).reduce(
+          (sum, row) => sum + (typeof row.duration_hours === "number" ? row.duration_hours : 0),
+          0
+        );
+
+        setStats({
+          internCount: internCount ?? 0,
+          activeInterns: activeInterns ?? 0,
+          readyForClients: readyForClients ?? 0,
+          totalSupervisionHours: totalHours,
+        });
+      } catch (e) {
+        console.error("Error loading executive snapshot stats:", e);
+        setStatus("Could not load program snapshot (prototype only).");
+      }
+    };
+
+    loadStats();
+  }, [ready, supabase]);
 
   // 🔓 Logout handler
   const handleLogout = async () => {
@@ -91,7 +155,9 @@ export default function ExecutivePage() {
             <Link href="/executive/clients">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Clients</div>
-                <div className="sidebar-link-subtitle">Capacity & waitlist</div>
+                <div className="sidebar-link-subtitle">
+                  Capacity & waitlist
+                </div>
               </button>
             </Link>
 
@@ -105,14 +171,18 @@ export default function ExecutivePage() {
             <Link href="/executive/grant">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Grant data</div>
-                <div className="sidebar-link-subtitle">Reporting snapshot</div>
+                <div className="sidebar-link-subtitle">
+                  Reporting snapshot
+                </div>
               </button>
             </Link>
 
             <Link href="/profile">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Profile</div>
-                <div className="sidebar-link-subtitle">Login & details</div>
+                <div className="sidebar-link-subtitle">
+                  Login & details
+                </div>
               </button>
             </Link>
 
@@ -147,9 +217,91 @@ export default function ExecutivePage() {
                   before dropping into the detailed views.
                 </p>
               </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                {status && (
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#fecaca",
+                      maxWidth: "16rem",
+                      textAlign: "right",
+                    }}
+                  >
+                    {status}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    padding: "0.4rem 0.9rem",
+                    borderRadius: "999px",
+                    border: "1px solid rgba(75,85,99,0.9)",
+                    backgroundColor: "rgba(15,23,42,1)",
+                    color: "#e5e7eb",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
             </header>
 
-            {/* Overview tiles – inside the same card, like the supervision snapshot */}
+            {/* Snapshot metrics row – stylistically similar to Supervision snapshot */}
+            <section style={{ marginBottom: "2rem" }}>
+              <h2
+                className="card-label"
+                style={{ marginBottom: "0.75rem", fontSize: "0.75rem" }}
+              >
+                PROGRAM SNAPSHOT
+              </h2>
+              <div className="grid grid-tiles">
+                <article className="card">
+                  <h3 className="card-label">Interns in program</h3>
+                  <p className="card-metric">
+                    {stats.internCount ?? "—"}
+                  </p>
+                  <p className="card-caption">Rows in intern_profiles</p>
+                </article>
+
+                <article className="card">
+                  <h3 className="card-label">Active interns</h3>
+                  <p className="card-metric">
+                    {stats.activeInterns ?? "—"}
+                  </p>
+                  <p className="card-caption">Status set to active</p>
+                </article>
+
+                <article className="card">
+                  <h3 className="card-label">Ready for clients</h3>
+                  <p className="card-metric">
+                    {stats.readyForClients ?? "—"}
+                  </p>
+                  <p className="card-caption">
+                    ready_for_clients = true
+                  </p>
+                </article>
+
+                <article className="card">
+                  <h3 className="card-label">Total supervision hours</h3>
+                  <p className="card-metric">
+                    {stats.totalSupervisionHours?.toFixed(1) ?? "0.0"}
+                  </p>
+                  <p className="card-caption">Sum of duration_hours</p>
+                </article>
+              </div>
+            </section>
+
+            {/* Narrative tiles, like in your current overview */}
             <div className="grid grid-tiles">
               <article className="card">
                 <h2 className="card-title">Intern workforce</h2>
