@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
+import RoleGate from "@/app/components/RoleGate";
 
 export default async function ExecutiveOverviewPage() {
   const supabase = createSupabaseClient();
@@ -92,7 +93,7 @@ export default async function ExecutiveOverviewPage() {
     }
   }
 
-  // Hours summary per intern (same logic as supervision page)
+  // Hours summary per intern
   const hoursByIntern = new Map();
   for (const s of supervisionSessions) {
     if (!s.intern_id) continue;
@@ -112,215 +113,228 @@ export default async function ExecutiveOverviewPage() {
   );
 
   return (
-    <main className="main-shell">
-      <div className="main-shell-inner main-shell-inner--with-sidebar">
-        {/* SIDEBAR – mirror supervision exactly, but Overview active */}
-        <aside className="sidebar">
-          <p className="sidebar-title">Executive portal</p>
+    <RoleGate expectedRole="executive">
+      <main className="main-shell">
+        <div className="main-shell-inner main-shell-inner--with-sidebar">
+          {/* SIDEBAR */}
+          <aside className="sidebar">
+            <p className="sidebar-title">Executive portal</p>
 
-          <button className="sidebar-link sidebar-link--active" type="button">
-            <div className="sidebar-link-title">Overview</div>
-            <div className="sidebar-link-subtitle">Program</div>
-          </button>
-
-          <Link href="/executive/supervision">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Supervision</div>
-              <div className="sidebar-link-subtitle">Hours & coverage</div>
+            <button
+              className="sidebar-link sidebar-link--active"
+              type="button"
+            >
+              <div className="sidebar-link-title">Overview</div>
+              <div className="sidebar-link-subtitle">Program</div>
             </button>
-          </Link>
 
-          <Link href="/executive/clients">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Clients</div>
-              <div className="sidebar-link-subtitle">Assignments</div>
-            </button>
-          </Link>
+            <Link href="/executive/supervision">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Supervision</div>
+                <div className="sidebar-link-subtitle">Hours & coverage</div>
+              </button>
+            </Link>
 
-          <Link href="/executive/pd">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">PD & events</div>
-              <div className="sidebar-link-subtitle">Intern ecosystem</div>
-            </button>
-          </Link>
+            <Link href="/executive/clients">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Clients</div>
+                <div className="sidebar-link-subtitle">Assignments</div>
+              </button>
+            </Link>
 
-          <Link href="/login">
-            <button className="sidebar-link" type="button">
-              <div className="sidebar-link-title">Back to login</div>
-              <div className="sidebar-link-subtitle">Switch role</div>
-            </button>
-          </Link>
-        </aside>
+            <Link href="/executive/pd">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">PD & events</div>
+                <div className="sidebar-link-subtitle">Intern ecosystem</div>
+              </button>
+            </Link>
 
-        {/* MAIN CONTENT – same card structure as Supervision */}
-        <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
-          <header className="section-header">
-            <div>
-              <RoleChip role="Executive" />
-              <h1 className="section-title">Program overview</h1>
-              <p className="section-subtitle">
-                A high-level snapshot of intern capacity, supervision coverage,
-                client load, and professional development activity. Use this to
-                orient yourself before jumping into the detailed supervision,
-                client, and PD views.
-              </p>
-            </div>
-          </header>
+            <Link href="/executive/grant">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Grant data</div>
+                <div className="sidebar-link-subtitle">
+                  Reporting snapshot
+                </div>
+              </button>
+            </Link>
 
-          {/* Snapshot row – uses the exact same pill style as supervision */}
-          <section
-            style={{
-              marginTop: "0.4rem",
-              marginBottom: "0.9rem",
-              padding: "0.7rem 0.9rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.5)",
-              backgroundColor: "rgba(15,23,42,1)",
-              display: "grid",
-              gap: "0.45rem",
-            }}
-          >
-            <p
+            <Link href="/logout">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Back to login</div>
+                <div className="sidebar-link-subtitle">Switch role</div>
+              </button>
+            </Link>
+          </aside>
+
+          {/* MAIN CONTENT */}
+          <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
+            <header className="section-header">
+              <div>
+                <RoleChip role="Executive" />
+                <h1 className="section-title">Program overview</h1>
+                <p className="section-subtitle">
+                  A high-level snapshot of intern capacity, supervision
+                  coverage, client load, and professional development activity.
+                  Use this to orient yourself before jumping into the detailed
+                  supervision, client, and PD views.
+                </p>
+              </div>
+            </header>
+
+            {/* Snapshot row */}
+            <section
               style={{
-                fontSize: "0.72rem",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "#9ca3af",
+                marginTop: "0.4rem",
+                marginBottom: "0.9rem",
+                padding: "0.7rem 0.9rem",
+                borderRadius: "0.9rem",
+                border: "1px solid rgba(148,163,184,0.5)",
+                backgroundColor: "rgba(15,23,42,1)",
+                display: "grid",
+                gap: "0.45rem",
               }}
             >
-              Program snapshot
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "0.85rem",
-              }}
-            >
-              <SummaryPill
-                label="Interns in program"
-                value={`${totalInterns}`}
-                hint="Rows in intern_profiles"
-              />
-              <SummaryPill
-                label="Active interns"
-                value={`${activeInterns}`}
-                hint="Status set to active"
-              />
-              <SummaryPill
-                label="Ready for clients"
-                value={`${readyInterns}`}
-                hint="Active + ready_for_clients = true"
-              />
-              <SummaryPill
-                label="Total supervision hours"
-                value={totalHours.toFixed(1)}
-                hint="Sum of duration_hours"
-              />
-            </div>
-
-            {loadError && (
               <p
                 style={{
-                  marginTop: "0.3rem",
-                  fontSize: "0.76rem",
-                  color: "#fecaca",
-                }}
-              >
-                {loadError}
-              </p>
-            )}
-
-            {!loadError && (
-              <p
-                style={{
-                  marginTop: "0.25rem",
-                  fontSize: "0.75rem",
-                  color: "#9ca3af",
-                  maxWidth: "40rem",
-                }}
-              >
-                As supervision logs accumulate and client assignments grow,
-                this snapshot will help you track whether intern capacity,
-                supervision time, and client demand are staying in balance.
-              </p>
-            )}
-          </section>
-
-          {/* Simple narrative tiles instead of table / panels */}
-          <section
-            style={{
-              padding: "0.8rem 1.0rem",
-              borderRadius: "0.9rem",
-              border: "1px solid rgba(148,163,184,0.45)",
-              backgroundColor: "rgba(15,23,42,1)",
-              display: "grid",
-              gap: "0.9rem",
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  fontSize: "0.74rem",
+                  fontSize: "0.72rem",
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
-                  color: "#e5e7eb",
-                  marginBottom: "0.25rem",
+                  color: "#9ca3af",
                 }}
               >
-                Where to go next
+                Program snapshot
               </p>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#cbd5f5",
-                  maxWidth: "40rem",
-                }}
-              >
-                The sections below give you quick links to the other executive
-                tools in this portal.
-              </p>
-            </div>
 
-            <div
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "0.85rem",
+                }}
+              >
+                <SummaryPill
+                  label="Interns in program"
+                  value={`${totalInterns}`}
+                  hint="Rows in intern_profiles"
+                />
+                <SummaryPill
+                  label="Active interns"
+                  value={`${activeInterns}`}
+                  hint="Status set to active"
+                />
+                <SummaryPill
+                  label="Ready for clients"
+                  value={`${readyInterns}`}
+                  hint="Active + ready_for_clients = true"
+                />
+                <SummaryPill
+                  label="Total supervision hours"
+                  value={totalHours.toFixed(1)}
+                  hint="Sum of duration_hours"
+                />
+              </div>
+
+              {loadError && (
+                <p
+                  style={{
+                    marginTop: "0.3rem",
+                    fontSize: "0.76rem",
+                    color: "#fecaca",
+                  }}
+                >
+                  {loadError}
+                </p>
+              )}
+
+              {!loadError && (
+                <p
+                  style={{
+                    marginTop: "0.25rem",
+                    fontSize: "0.75rem",
+                    color: "#9ca3af",
+                    maxWidth: "40rem",
+                  }}
+                >
+                  As supervision logs accumulate and client assignments grow,
+                  this snapshot will help you track whether intern capacity,
+                  supervision time, and client demand are staying in balance.
+                </p>
+              )}
+            </section>
+
+            {/* Narrative tiles */}
+            <section
               style={{
+                padding: "0.8rem 1.0rem",
+                borderRadius: "0.9rem",
+                border: "1px solid rgba(148,163,184,0.45)",
+                backgroundColor: "rgba(15,23,42,1)",
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(14rem, 1fr))",
-                gap: "0.8rem",
+                gap: "0.9rem",
               }}
             >
-              <OverviewTile
-                title="Supervision"
-                body="Review onboarding status, readiness for clients, and supervision hours per intern. Adjust readiness and assignments as supervision logs grow."
-                href="/executive/supervision"
-              />
-              <OverviewTile
-                title="Clients"
-                body="Manage active and waitlisted clients, align caseloads with intern readiness, and ensure coverage by supervisors and sites."
-                href="/executive/clients"
-              />
-              <OverviewTile
-                title="PD & events"
-                body="Configure trauma-informed practice trainings, ethics refreshers, and agency-specific workshops. Track interest and attendance."
-                href="/executive/pd"
-              />
-              <OverviewTile
-                title="Grant data"
-                body="Pull email-ready summaries of client identities, waitlist patterns, and service usage between two dates for funders and boards."
-                href="/executive/grant"
-              />
-            </div>
+              <div>
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#e5e7eb",
+                    marginBottom: "0.25rem",
+                  }}
+                >
+                  Where to go next
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "#cbd5f5",
+                    maxWidth: "40rem",
+                  }}
+                >
+                  The sections below give you quick links to the other executive
+                  tools in this portal.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(14rem, 1fr))",
+                  gap: "0.8rem",
+                }}
+              >
+                <OverviewTile
+                  title="Supervision"
+                  body="Review onboarding status, readiness for clients, and supervision hours per intern. Adjust readiness and assignments as supervision logs grow."
+                  href="/executive/supervision"
+                />
+                <OverviewTile
+                  title="Clients"
+                  body="Manage active and waitlisted clients, align caseloads with intern readiness, and ensure coverage by supervisors and sites."
+                  href="/executive/clients"
+                />
+                <OverviewTile
+                  title="PD & events"
+                  body="Configure trauma-informed practice trainings, ethics refreshers, and agency-specific workshops. Track interest and attendance."
+                  href="/executive/pd"
+                />
+                <OverviewTile
+                  title="Grant data"
+                  body="Pull email-ready summaries of client identities, waitlist patterns, and service usage between two dates for funders and boards."
+                  href="/executive/grant"
+                />
+              </div>
+            </section>
           </section>
-        </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </RoleGate>
   );
 }
 
-/* ───────────────────────────
-   Small components – copied from supervision style
-──────────────────────────── */
+/* Small components */
 
 function SummaryPill({ label, value, hint }) {
   return (
