@@ -1,89 +1,31 @@
-"use client";
+export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabaseClient";
+import RoleChip from "@/app/components/RoleChip";
+import RoleGate from "@/app/components/RoleGate";
 
-export default function SupervisorPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createSupabaseClient(), []);
-
-  const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState("");
-
-  // 🔐 Session / role guard
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getUser();
-      const role =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("mffs_role")
-          : null;
-
-      if (!data.user || role !== "supervisor") {
-        router.push("/login");
-      } else {
-        setReady(true);
-      }
-    };
-
-    checkSession();
-  }, [supabase, router]);
-
-  // 🔓 Logout handler
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error("Error signing out:", e);
-    }
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("mffs_role");
-      window.localStorage.removeItem("mffs_user_id");
-    }
-    router.push("/login");
-  };
-
-  if (!ready) {
-    return (
-      <main className="main-shell">
-        <div className="main-shell-inner">
-          <section className="card" style={{ padding: "1.6rem" }}>
-            <p style={{ color: "#e5e7eb", fontSize: "0.9rem" }}>
-              Checking your session…
-            </p>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
+export default async function SupervisorHomePage() {
   return (
-    <main className="main-shell">
-      <div className="main-shell-inner">
-        {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-header">
-            <h2 className="sidebar-title">Supervisor portal</h2>
-            <p className="sidebar-subtitle">
-              View your interns, supervision logs, and caseload.
-            </p>
-          </div>
+    <RoleGate expectedRole="supervisor">
+      <main className="main-shell">
+        <div className="main-shell-inner main-shell-inner--with-sidebar">
+          {/* SIDEBAR */}
+          <aside className="sidebar">
+            <p className="sidebar-title">Supervisor portal</p>
 
-          <nav className="sidebar-nav">
-            <Link href="/supervisor">
-              <button className="sidebar-link" type="button">
-                <div className="sidebar-link-title">Overview</div>
-                <div className="sidebar-link-subtitle">Supervision</div>
-              </button>
-            </Link>
+            <button
+              className="sidebar-link sidebar-link--active"
+              type="button"
+            >
+              <div className="sidebar-link-title">Overview</div>
+              <div className="sidebar-link-subtitle">Caseload & support</div>
+            </button>
 
             <Link href="/supervisor/supervision">
               <button className="sidebar-link" type="button">
-                <div className="sidebar-link-title">Supervision log</div>
+                <div className="sidebar-link-title">Supervision logs</div>
                 <div className="sidebar-link-subtitle">
-                  Sessions & notes
+                  Sessions & hours
                 </div>
               </button>
             </Link>
@@ -91,7 +33,18 @@ export default function SupervisorPage() {
             <Link href="/supervisor/clients">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Clients</div>
-                <div className="sidebar-link-subtitle">Assigned caseload</div>
+                <div className="sidebar-link-subtitle">
+                  Assigned caseload
+                </div>
+              </button>
+            </Link>
+
+            <Link href="/supervisor/pd">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">PD & events</div>
+                <div className="sidebar-link-subtitle">
+                  Training & interests
+                </div>
               </button>
             </Link>
 
@@ -103,103 +56,143 @@ export default function SupervisorPage() {
                 </div>
               </button>
             </Link>
-          </nav>
-        </aside>
 
-        {/* Main content */}
-        <section className="main-content">
-          <header className="section-header">
-            <div>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "#9ca3af",
-                }}
-              >
-                Supervisor overview
-              </p>
-              <h1 className="section-title">Supervision dashboard</h1>
-              <p className="section-subtitle">
-                A focused space for your interns, supervision hours, and client
-                assignment oversight.
-              </p>
-            </div>
+            <Link href="/logout">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Back to login</div>
+                <div className="sidebar-link-subtitle">Switch role</div>
+              </button>
+            </Link>
+          </aside>
 
-            <div
+          {/* MAIN CONTENT */}
+          <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
+            <header className="section-header">
+              <div>
+                <RoleChip role="Supervisor" />
+                <h1 className="section-title">Supervision & caseload overview</h1>
+                <p className="section-subtitle">
+                  A home base for supervisors to see which interns they support,
+                  how supervision hours are accumulating, and how client
+                  assignments are distributed across the team.
+                </p>
+              </div>
+            </header>
+
+            {/* Narrative “where to go” section */}
+            <section
               style={{
-                display: "flex",
-                gap: "0.75rem",
-                alignItems: "center",
+                marginTop: "0.6rem",
+                padding: "0.8rem 1.0rem",
+                borderRadius: "0.9rem",
+                border: "1px solid rgba(148,163,184,0.45)",
+                backgroundColor: "rgba(15,23,42,1)",
+                display: "grid",
+                gap: "0.9rem",
               }}
             >
-              {status && (
-                <span
+              <div>
+                <p
                   style={{
-                    fontSize: "0.75rem",
-                    color: "#f97373",
-                    maxWidth: "16rem",
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#e5e7eb",
+                    marginBottom: "0.25rem",
                   }}
                 >
-                  {status}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleLogout}
+                  Where to go next
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "#cbd5f5",
+                    maxWidth: "40rem",
+                  }}
+                >
+                  Use the sections below to review supervision work, manage
+                  caseloads with interns, and keep an eye on professional
+                  development and reporting needs.
+                </p>
+              </div>
+
+              <div
                 style={{
-                  padding: "0.4rem 0.9rem",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(75,85,99,0.9)",
-                  backgroundColor: "rgba(15,23,42,1)",
-                  color: "#e5e7eb",
-                  fontSize: "0.8rem",
-                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(14rem, 1fr))",
+                  gap: "0.8rem",
                 }}
               >
-                Logout
-              </button>
-            </div>
-          </header>
+                <OverviewTile
+                  title="Supervision logs"
+                  body="View and record supervision sessions, including individual, dyadic, and group time, and keep track of cumulative hours per intern."
+                  href="/supervisor/supervision"
+                />
+                <OverviewTile
+                  title="Client caseload"
+                  body="See which clients are currently assigned to you and your interns, and flag situations that need additional oversight or redistribution."
+                  href="/supervisor/clients"
+                />
+                <OverviewTile
+                  title="PD & training"
+                  body="Explore upcoming PD events, track your own attendance, and encourage interns to sign up for trauma-informed and ethics-focused training."
+                  href="/supervisor/pd"
+                />
+                <OverviewTile
+                  title="Profile & login"
+                  body="Update your login information and basic details so the portal reflects how you actually work in practice."
+                  href="/profile"
+                />
+              </div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </RoleGate>
+  );
+}
 
-          {/* Overview tiles (static for now, hook into Supabase later) */}
-          <div className="grid grid-tiles">
-            <article className="card">
-              <h2 className="card-title">Your supervisees</h2>
-              <p className="card-caption">
-                Use the Supervision tab to review which interns are assigned to
-                you and how their hours are progressing.
-              </p>
-            </article>
-
-            <article className="card">
-              <h2 className="card-title">Supervision sessions</h2>
-              <p className="card-caption">
-                Log individual, dyadic, and group sessions, indicate direct vs
-                indirect hours, and sign off on completed notes.
-              </p>
-            </article>
-
-            <article className="card">
-              <h2 className="card-title">Client coverage</h2>
-              <p className="card-caption">
-                In the Clients tab, review which clients your interns are
-                holding and adjust caseloads in collaboration with the
-                executive team.
-              </p>
-            </article>
-
-            <article className="card">
-              <h2 className="card-title">Profile & preferences</h2>
-              <p className="card-caption">
-                Keep your name, pronouns, and login details up to date in the
-                Profile section.
-              </p>
-            </article>
-          </div>
-        </section>
+function OverviewTile({ title, body, href }) {
+  return (
+    <Link href={href}>
+      <div
+        style={{
+          padding: "0.75rem 0.85rem",
+          borderRadius: "0.8rem",
+          border: "1px solid rgba(55,65,81,0.9)",
+          backgroundColor: "rgba(15,23,42,1)",
+          cursor: "pointer",
+          display: "grid",
+          gap: "0.35rem",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.86rem",
+            fontWeight: 500,
+            color: "#e5e7eb",
+          }}
+        >
+          {title}
+        </p>
+        <p
+          style={{
+            fontSize: "0.78rem",
+            color: "#9ca3af",
+          }}
+        >
+          {body}
+        </p>
+        <p
+          style={{
+            fontSize: "0.76rem",
+            color: "#a5b4fc",
+          }}
+        >
+          Open {title.toLowerCase()} →
+        </p>
       </div>
-    </main>
+    </Link>
   );
 }

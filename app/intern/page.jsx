@@ -1,96 +1,51 @@
-"use client";
+export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabaseClient";
+import RoleChip from "@/app/components/RoleChip";
+import RoleGate from "@/app/components/RoleGate";
 
-export default function InternPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createSupabaseClient(), []);
-
-  const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState("");
-
-  // 🔐 Session / role guard
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getUser();
-      const role =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("mffs_role")
-          : null;
-
-      if (!data.user || role !== "intern") {
-        router.push("/login");
-      } else {
-        setReady(true);
-      }
-    };
-
-    checkSession();
-  }, [supabase, router]);
-
-  // 🔓 Logout handler
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error("Error signing out:", e);
-    }
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("mffs_role");
-      window.localStorage.removeItem("mffs_user_id");
-    }
-    router.push("/login");
-  };
-
-  if (!ready) {
-    return (
-      <main className="main-shell">
-        <div className="main-shell-inner">
-          <section className="card" style={{ padding: "1.6rem" }}>
-            <p style={{ color: "#e5e7eb", fontSize: "0.9rem" }}>
-              Checking your session…
-            </p>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
+export default async function InternHomePage() {
   return (
-    <main className="main-shell">
-      <div className="main-shell-inner">
-        {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-header">
-            <h2 className="sidebar-title">Intern portal</h2>
-            <p className="sidebar-subtitle">
-              Track your clients, supervision hours, and practicum details.
-            </p>
-          </div>
+    <RoleGate expectedRole="intern">
+      <main className="main-shell">
+        <div className="main-shell-inner main-shell-inner--with-sidebar">
+          {/* SIDEBAR */}
+          <aside className="sidebar">
+            <p className="sidebar-title">Intern portal</p>
 
-          <nav className="sidebar-nav">
-            <Link href="/intern">
-              <button className="sidebar-link" type="button">
-                <div className="sidebar-link-title">Overview</div>
-                <div className="sidebar-link-subtitle">Dashboard</div>
-              </button>
-            </Link>
+            <button
+              className="sidebar-link sidebar-link--active"
+              type="button"
+            >
+              <div className="sidebar-link-title">Overview</div>
+              <div className="sidebar-link-subtitle">
+                My practicum journey
+              </div>
+            </button>
 
             <Link href="/intern/clients">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Clients</div>
-                <div className="sidebar-link-subtitle">Active caseload</div>
+                <div className="sidebar-link-subtitle">
+                  Active & waitlisted
+                </div>
               </button>
             </Link>
 
             <Link href="/intern/supervision">
               <button className="sidebar-link" type="button">
-                <div className="sidebar-link-title">Supervision log</div>
+                <div className="sidebar-link-title">Supervision</div>
                 <div className="sidebar-link-subtitle">
-                  Sessions & feedback
+                  Sessions & hours
+                </div>
+              </button>
+            </Link>
+
+            <Link href="/intern/pd">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">PD & training</div>
+                <div className="sidebar-link-subtitle">
+                  Workshops & interests
                 </div>
               </button>
             </Link>
@@ -99,108 +54,146 @@ export default function InternPage() {
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Profile</div>
                 <div className="sidebar-link-subtitle">
-                  Login & practicum details
+                  Login & details
                 </div>
               </button>
             </Link>
-          </nav>
-        </aside>
 
-        {/* Main content */}
-        <section className="main-content">
-          <header className="section-header">
-            <div>
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "#9ca3af",
-                }}
-              >
-                Intern overview
-              </p>
-              <h1 className="section-title">Practicum dashboard</h1>
-              <p className="section-subtitle">
-                A home base for your clients, supervision hours, and practicum
-                profile information.
-              </p>
-            </div>
+            <Link href="/logout">
+              <button className="sidebar-link" type="button">
+                <div className="sidebar-link-title">Back to login</div>
+                <div className="sidebar-link-subtitle">Switch role</div>
+              </button>
+            </Link>
+          </aside>
 
-            <div
+          {/* MAIN CONTENT */}
+          <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
+            <header className="section-header">
+              <div>
+                <RoleChip role="Intern" />
+                <h1 className="section-title">My practicum overview</h1>
+                <p className="section-subtitle">
+                  A single place to see your current clients, supervision
+                  progress, and professional development opportunities, so you
+                  can stay grounded and organised during training.
+                </p>
+              </div>
+            </header>
+
+            <section
               style={{
-                display: "flex",
-                gap: "0.75rem",
-                alignItems: "center",
+                marginTop: "0.6rem",
+                padding: "0.8rem 1.0rem",
+                borderRadius: "0.9rem",
+                border: "1px solid rgba(148,163,184,0.45)",
+                backgroundColor: "rgba(15,23,42,1)",
+                display: "grid",
+                gap: "0.9rem",
               }}
             >
-              {status && (
-                <span
+              <div>
+                <p
                   style={{
-                    fontSize: "0.75rem",
-                    color: "#f97373",
-                    maxWidth: "16rem",
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#e5e7eb",
+                    marginBottom: "0.25rem",
                   }}
                 >
-                  {status}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleLogout}
+                  Where to go next
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "#cbd5f5",
+                    maxWidth: "40rem",
+                  }}
+                >
+                  Use the sections below to keep track of your direct client
+                  work, supervision commitments, and learning goals, all within
+                  one consistent portal.
+                </p>
+              </div>
+
+              <div
                 style={{
-                  padding: "0.4rem 0.9rem",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(75,85,99,0.9)",
-                  backgroundColor: "rgba(15,23,42,1)",
-                  color: "#e5e7eb",
-                  fontSize: "0.8rem",
-                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(14rem, 1fr))",
+                  gap: "0.8rem",
                 }}
               >
-                Logout
-              </button>
-            </div>
-          </header>
+                <OverviewTile
+                  title="My clients"
+                  body="See your current active and waitlisted clients, understand how they were assigned, and stay aligned with your supervisor about caseload."
+                  href="/intern/clients"
+                />
+                <OverviewTile
+                  title="My supervision"
+                  body="Review upcoming and past supervision sessions, track hours towards your practicum requirements, and document key themes or learning edges."
+                  href="/intern/supervision"
+                />
+                <OverviewTile
+                  title="My PD & training"
+                  body="Browse upcoming professional development offerings, mark interests, and see where your learning plan connects with agency priorities."
+                  href="/intern/pd"
+                />
+                <OverviewTile
+                  title="Profile & login"
+                  body="Update your login credentials and basic practicum details, such as pronouns, site, and supervision focus, as they evolve over time."
+                  href="/profile"
+                />
+              </div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </RoleGate>
+  );
+}
 
-          {/* Overview tiles (static for now, hook into Supabase later) */}
-          <div className="grid grid-tiles">
-            <article className="card">
-              <h2 className="card-title">Your clients</h2>
-              <p className="card-caption">
-                Use the Clients tab to review your active caseload, see who is
-                waitlisted, and keep notes aligned with agency policies.
-              </p>
-            </article>
-
-            <article className="card">
-              <h2 className="card-title">Supervision hours</h2>
-              <p className="card-caption">
-                Log sessions with your supervisor, track direct vs indirect
-                hours, and make sure you&apos;re on pace for program and
-                regulatory requirements.
-              </p>
-            </article>
-
-            <article className="card">
-              <h2 className="card-title">Practicum profile</h2>
-              <p className="card-caption">
-                In the Profile area, you can update your school, program,
-                placement site, and supervision focus to keep leadership
-                informed.
-              </p>
-            </article>
-
-            <article className="card">
-              <h2 className="card-title">Future reporting</h2>
-              <p className="card-caption">
-                This dashboard will eventually summarize your hours and PD
-                participation for quick export to your program and supervisors.
-              </p>
-            </article>
-          </div>
-        </section>
+function OverviewTile({ title, body, href }) {
+  return (
+    <Link href={href}>
+      <div
+        style={{
+          padding: "0.75rem 0.85rem",
+          borderRadius: "0.8rem",
+          border: "1px solid rgba(55,65,81,0.9)",
+          backgroundColor: "rgba(15,23,42,1)",
+          cursor: "pointer",
+          display: "grid",
+          gap: "0.35rem",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.86rem",
+            fontWeight: 500,
+            color: "#e5e7eb",
+          }}
+        >
+          {title}
+        </p>
+        <p
+          style={{
+            fontSize: "0.78rem",
+            color: "#9ca3af",
+          }}
+        >
+          {body}
+        </p>
+        <p
+          style={{
+            fontSize: "0.76rem",
+            color: "#a5b4fc",
+          }}
+        >
+          Open {title.toLowerCase()} →
+        </p>
       </div>
-    </main>
+    </Link>
   );
 }
