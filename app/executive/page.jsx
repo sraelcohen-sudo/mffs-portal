@@ -149,7 +149,7 @@ export default async function ExecutiveOverviewPage() {
               </button>
             </Link>
 
-            <Link href="/executive/grant">
+            <Link href="/executive/grants">
               <button className="sidebar-link" type="button">
                 <div className="sidebar-link-title">Grant data</div>
                 <div className="sidebar-link-subtitle">
@@ -323,7 +323,7 @@ export default async function ExecutiveOverviewPage() {
                 <OverviewTile
                   title="Grant data"
                   body="Pull email-ready summaries of client identities, waitlist patterns, and service usage between two dates for funders and boards."
-                  href="/executive/grant"
+                  href="/executive/grants"
                 />
               </div>
             </section>
