@@ -15,6 +15,10 @@ export default function ExecutiveGrantsPage() {
   const [clients, setClients] = useState([]);
   const [summaryText, setSummaryText] = useState("");
 
+  // Emails for "Email information" button
+  const [contactEmails, setContactEmails] = useState([]);
+  const [emailStatus, setEmailStatus] = useState("");
+
   // Default to “last 30 days”
   useEffect(() => {
     const today = new Date();
@@ -26,6 +30,58 @@ export default function ExecutiveGrantsPage() {
     setStartDate(startISO);
     setEndDate(endISO);
   }, []);
+
+  // Load intern + supervisor emails for the email button
+  useEffect(() => {
+    const loadContacts = async () => {
+      if (!supabase) return;
+
+      try {
+        const emailsSet = new Set();
+
+        // Intern emails from intern_profiles
+        try {
+          const { data, error } = await supabase
+            .from("intern_profiles")
+            .select("email");
+
+          if (!error && Array.isArray(data)) {
+            for (const row of data) {
+              if (row?.email) emailsSet.add(row.email);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not load intern emails for grants page:", e);
+        }
+
+        // Supervisor emails from supervisors
+        try {
+          const { data, error } = await supabase
+            .from("supervisors")
+            .select("email");
+
+          if (!error && Array.isArray(data)) {
+            for (const row of data) {
+              if (row?.email) emailsSet.add(row.email);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not load supervisor emails for grants page:", e);
+        }
+
+        // NOTE: If you later add an executives table, you can also pull emails here
+        // e.g., from "executive_users" or similar.
+
+        setContactEmails(Array.from(emailsSet));
+        setEmailStatus("");
+      } catch (e) {
+        console.error("Unexpected error loading contact emails:", e);
+        setEmailStatus("Could not load all contact emails (prototype-level only).");
+      }
+    };
+
+    loadContacts();
+  }, [supabase]);
 
   const handleGenerate = async (e) => {
     e?.preventDefault?.();
@@ -99,8 +155,79 @@ export default function ExecutiveGrantsPage() {
     }
   };
 
-  // Basic aggregations
   const aggregates = computeAggregates(clients);
+
+  // Build and open email (does not auto-send; just opens client)
+  const handleEmailInformation = () => {
+    if (!startDate || !endDate) {
+      setEmailStatus("Select a date range and generate the summary first.");
+      return;
+    }
+    if (!contactEmails.length) {
+      setEmailStatus(
+        "No intern or supervisor emails were found. Check that email fields exist in Supabase."
+      );
+      return;
+    }
+
+    const to = contactEmails.join(",");
+    const subject = `Grant data summary – ${startDate} to ${endDate}`;
+
+    const {
+      activeClients,
+      waitlistedClients,
+      totalClients,
+      identityTagCount,
+      identityCounts
+    } = aggregates;
+
+    // Top identity breakdown for the email body
+    let identityLines = [];
+    if (identityCounts && identityCounts.size > 0) {
+      const arr = Array.from(identityCounts.entries()).sort(
+        (a, b) => b[1] - a[1]
+      );
+      const top = arr.slice(0, 8);
+      for (const [label, count] of top) {
+        identityLines.push(`- ${label}: ${count} clients`);
+      }
+      if (arr.length > top.length) {
+        identityLines.push(`- Other identity markers recorded: ${
+          arr.length - top.length
+        } additional categories`);
+      }
+    } else {
+      identityLines.push(
+        "- Identity markers not fully available in current dataset."
+      );
+    }
+
+    const metricsBlock = [
+      `Summary for ${startDate} to ${endDate}:`,
+      "",
+      `- Total clients considered in this portal: ${totalClients}`,
+      `- Active clients: ${activeClients}`,
+      `- Waitlisted clients: ${waitlistedClients}`,
+      `- Distinct identity tags recorded: ${identityTagCount}`,
+      "",
+      "Identity breakdown (approximate, based on available tags):",
+      ...identityLines
+    ].join("\n");
+
+    const narrativeBlock = summaryText
+      ? `\n\nNarrative summary:\n\n${summaryText}`
+      : "";
+
+    const footer = `\n\n—\nGenerated via the MFFS Executive supervision & grant portal prototype.`;
+
+    const body = encodeURIComponent(metricsBlock + narrativeBlock + footer);
+    const href = `mailto:${encodeURIComponent(
+      to
+    )}?subject=${encodeURIComponent(subject)}&body=${body}`;
+
+    window.location.href = href;
+    setEmailStatus("");
+  };
 
   return (
     <RoleGate expectedRole="executive">
@@ -144,7 +271,7 @@ export default function ExecutiveGrantsPage() {
             >
               <div className="sidebar-link-title">Grant data</div>
               <div className="sidebar-link-subtitle">
-                Email-ready summaries
+                Reporting snapshot
               </div>
             </button>
 
@@ -170,37 +297,84 @@ export default function ExecutiveGrantsPage() {
               </div>
             </header>
 
-            {/* Date range + generate button */}
+            {/* Top controls: date range + buttons */}
             <section
               style={{
                 marginTop: "0.7rem",
                 marginBottom: "1rem",
-                padding: "0.8rem 1rem",
+                padding: "0.9rem 1.0rem",
                 borderRadius: "0.9rem",
                 border: "1px solid rgba(148,163,184,0.5)",
                 backgroundColor: "rgba(15,23,42,1)",
                 display: "grid",
-                gap: "0.75rem",
+                gap: "0.65rem"
               }}
             >
-              <p
+              <div
                 style={{
-                  fontSize: "0.74rem",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#9ca3af",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                  alignItems: "center"
                 }}
               >
-                Date range
-              </p>
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#9ca3af"
+                  }}
+                >
+                  Date range & actions
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    flexWrap: "wrap"
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleEmailInformation}
+                    disabled={
+                      !contactEmails.length ||
+                      !summaryText ||
+                      !startDate ||
+                      !endDate
+                    }
+                    style={{
+                      padding: "0.45rem 0.9rem",
+                      borderRadius: "999px",
+                      border: "1px solid rgba(52,211,153,0.9)",
+                      backgroundColor:
+                        !contactEmails.length || !summaryText
+                          ? "rgba(6,95,70,0.6)"
+                          : "rgba(6,95,70,1)",
+                      color: "#ecfdf5",
+                      fontSize: "0.8rem",
+                      cursor:
+                        !contactEmails.length || !summaryText
+                          ? "default"
+                          : "pointer",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    Email information
+                  </button>
+                </div>
+              </div>
 
               <form
                 onSubmit={handleGenerate}
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: "0.75rem",
-                  alignItems: "center",
+                  gap: "0.9rem",
+                  alignItems: "flex-end"
                 }}
               >
                 <div style={{ display: "grid", gap: "0.2rem" }}>
@@ -215,14 +389,7 @@ export default function ExecutiveGrantsPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    style={{
-                      backgroundColor: "#020617",
-                      borderRadius: "0.5rem",
-                      border: "1px solid rgba(148,163,184,0.7)",
-                      padding: "0.35rem 0.6rem",
-                      fontSize: "0.8rem",
-                      color: "#e5e7eb",
-                    }}
+                    style={dateInputStyle}
                   />
                 </div>
 
@@ -238,14 +405,7 @@ export default function ExecutiveGrantsPage() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    style={{
-                      backgroundColor: "#020617",
-                      borderRadius: "0.5rem",
-                      border: "1px solid rgba(148,163,184,0.7)",
-                      padding: "0.35rem 0.6rem",
-                      fontSize: "0.8rem",
-                      color: "#e5e7eb",
-                    }}
+                    style={dateInputStyle}
                   />
                 </div>
 
@@ -253,8 +413,7 @@ export default function ExecutiveGrantsPage() {
                   type="submit"
                   disabled={loading}
                   style={{
-                    marginTop: "1.25rem",
-                    padding: "0.5rem 0.9rem",
+                    padding: "0.52rem 0.95rem",
                     borderRadius: "999px",
                     border: "1px solid rgba(129,140,248,1)",
                     backgroundColor: loading
@@ -263,7 +422,7 @@ export default function ExecutiveGrantsPage() {
                     color: "#e5e7eb",
                     fontSize: "0.8rem",
                     cursor: loading ? "default" : "pointer",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   {loading ? "Generating…" : "Generate summary"}
@@ -275,52 +434,118 @@ export default function ExecutiveGrantsPage() {
                   style={{
                     fontSize: "0.76rem",
                     color: "#e5e7eb",
-                    opacity: 0.9,
+                    opacity: 0.9
                   }}
                 >
                   {statusMessage}
                 </p>
               )}
+              {emailStatus && (
+                <p
+                  style={{
+                    fontSize: "0.76rem",
+                    color: "#bbf7d0"
+                  }}
+                >
+                  {emailStatus}
+                </p>
+              )}
             </section>
 
-            {/* Aggregates row */}
-            <section style={{ marginBottom: "1rem" }}>
-              <h2 className="card-label" style={{ marginBottom: "0.6rem" }}>
-                Counts for this period
-              </h2>
-              <div className="grid grid-tiles">
-                <MetricTile
-                  label="Active clients"
-                  value={aggregates.activeClients}
-                  hint="status = 'active'"
-                />
-                <MetricTile
-                  label="Waitlisted clients"
-                  value={aggregates.waitlistedClients}
-                  hint="status = 'waitlisted'"
-                />
-                <MetricTile
-                  label="Total clients considered"
-                  value={aggregates.totalClients}
-                  hint="Rows returned for this range"
-                />
-                <MetricTile
-                  label="Identity tags seen"
-                  value={aggregates.identityTagCount}
-                  hint="Unique identity labels (approximate)"
-                />
+            {/* Metrics + charts row */}
+            <section
+              style={{
+                marginBottom: "1.0rem",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1.1fr)",
+                gap: "1.0rem"
+              }}
+            >
+              {/* Metrics */}
+              <div>
+                <h2
+                  className="card-label"
+                  style={{ marginBottom: "0.6rem" }}
+                >
+                  Counts for this period
+                </h2>
+                <div className="grid grid-tiles">
+                  <MetricTile
+                    label="Active clients"
+                    value={aggregates.activeClients}
+                    hint="status = 'active'"
+                  />
+                  <MetricTile
+                    label="Waitlisted clients"
+                    value={aggregates.waitlistedClients}
+                    hint="status = 'waitlisted'"
+                  />
+                  <MetricTile
+                    label="Total clients considered"
+                    value={aggregates.totalClients}
+                    hint="Rows returned for this range"
+                  />
+                  <MetricTile
+                    label="Identity tags seen"
+                    value={aggregates.identityTagCount}
+                    hint="Unique identity labels (approximate)"
+                  />
+                </div>
+              </div>
+
+              {/* Charts */}
+              <div
+                style={{
+                  padding: "0.85rem 0.9rem",
+                  borderRadius: "0.9rem",
+                  border: "1px solid rgba(148,163,184,0.45)",
+                  backgroundColor: "rgba(15,23,42,1)",
+                  display: "grid",
+                  gap: "0.75rem"
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#e5e7eb"
+                  }}
+                >
+                  Visual snapshot
+                </p>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                    gap: "0.7rem"
+                  }}
+                >
+                  <PieChart
+                    title="Client status"
+                    subtitle="Active vs waitlisted vs other"
+                    data={buildStatusPieData(aggregates)}
+                  />
+
+                  <PieChart
+                    title="Identity tags"
+                    subtitle="Top categories by count"
+                    data={buildIdentityPieData(aggregates.identityCounts)}
+                  />
+                </div>
               </div>
             </section>
 
             {/* Email-ready text area */}
             <section
               style={{
-                padding: "0.8rem 1rem",
+                padding: "0.85rem 1.0rem",
                 borderRadius: "0.9rem",
                 border: "1px solid rgba(148,163,184,0.45)",
                 backgroundColor: "rgba(15,23,42,1)",
                 display: "grid",
-                gap: "0.6rem",
+                gap: "0.6rem"
               }}
             >
               <div>
@@ -330,7 +555,7 @@ export default function ExecutiveGrantsPage() {
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                     color: "#e5e7eb",
-                    marginBottom: "0.25rem",
+                    marginBottom: "0.25rem"
                   }}
                 >
                   Email-ready summary
@@ -339,13 +564,12 @@ export default function ExecutiveGrantsPage() {
                   style={{
                     fontSize: "0.78rem",
                     color: "#cbd5f5",
-                    maxWidth: "40rem",
+                    maxWidth: "40rem"
                   }}
                 >
-                  You can paste the text below directly into an email to a funder,
-                  board member, or internal stakeholder. Edit wording as needed
-                  while keeping the counts consistent with the selected date
-                  range.
+                  This narrative is what gets dropped into the body of the email
+                  when you click <strong>Email information</strong>. You can
+                  adjust the language here before sending.
                 </p>
               </div>
 
@@ -361,9 +585,10 @@ export default function ExecutiveGrantsPage() {
                   padding: "0.7rem 0.8rem",
                   fontSize: "0.8rem",
                   color: "#e5e7eb",
-                  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+                  fontFamily:
+                    "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
                   lineHeight: 1.5,
-                  resize: "vertical",
+                  resize: "vertical"
                 }}
               />
             </section>
@@ -374,7 +599,18 @@ export default function ExecutiveGrantsPage() {
   );
 }
 
-/* ───────── Helper functions ───────── */
+/* ───────── Helper styles ───────── */
+
+const dateInputStyle = {
+  backgroundColor: "#020617",
+  borderRadius: "0.5rem",
+  border: "1px solid rgba(148,163,184,0.7)",
+  padding: "0.35rem 0.6rem",
+  fontSize: "0.8rem",
+  color: "#e5e7eb"
+};
+
+/* ───────── Aggregation helpers ───────── */
 
 function computeAggregates(clients) {
   let active = 0;
@@ -398,7 +634,7 @@ function computeAggregates(clients) {
     waitlistedClients: waitlisted,
     totalClients: clients ? clients.length : 0,
     identityTagCount: identityCounts.size,
-    identityCounts,
+    identityCounts
   };
 }
 
@@ -459,7 +695,7 @@ function buildGrantSummary(clients, startDate, endDate) {
   return parts.join("\n\n");
 }
 
-/* Small metric tile */
+/* ───────── Metric tile ───────── */
 
 function MetricTile({ label, value, hint }) {
   return (
@@ -468,5 +704,161 @@ function MetricTile({ label, value, hint }) {
       <p className="card-metric">{value}</p>
       {hint && <p className="card-caption">{hint}</p>}
     </article>
+  );
+}
+
+/* ───────── Pie chart helpers ───────── */
+
+function buildStatusPieData(aggregates) {
+  const { activeClients, waitlistedClients, totalClients } = aggregates;
+  const other = Math.max(totalClients - activeClients - waitlistedClients, 0);
+
+  const data = [];
+  if (activeClients > 0) {
+    data.push({ label: "Active", value: activeClients, color: "#6366f1" });
+  }
+  if (waitlistedClients > 0) {
+    data.push({ label: "Waitlisted", value: waitlistedClients, color: "#f97316" });
+  }
+  if (other > 0) {
+    data.push({ label: "Other", value: other, color: "#4b5563" });
+  }
+
+  return data.length > 0
+    ? data
+    : [{ label: "No data", value: 1, color: "#4b5563" }];
+}
+
+function buildIdentityPieData(identityCounts) {
+  if (!identityCounts || identityCounts.size === 0) {
+    return [{ label: "No identity data", value: 1, color: "#4b5563" }];
+  }
+
+  const all = Array.from(identityCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const top = all.slice(0, 5);
+  const rest = all.slice(5);
+  const palette = ["#22c55e", "#06b6d4", "#f59e0b", "#ec4899", "#a855f7"];
+
+  const data = top.map(([label, value], idx) => ({
+    label,
+    value,
+    color: palette[idx % palette.length]
+  }));
+
+  if (rest.length > 0) {
+    const otherTotal = rest.reduce((sum, [, v]) => sum + v, 0);
+    data.push({ label: "Other", value: otherTotal, color: "#4b5563" });
+  }
+
+  return data;
+}
+
+/* Simple conic-gradient pie chart with legend */
+
+function PieChart({ title, subtitle, data }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
+
+  // Build conic-gradient stops
+  let currentAngle = 0;
+  const segments = data.map((d) => {
+    const angle = (d.value / total) * 360;
+    const start = currentAngle;
+    const end = currentAngle + angle;
+    currentAngle = end;
+    return `${d.color} ${start}deg ${end}deg`;
+  });
+
+  const gradient = `conic-gradient(${segments.join(", ")})`;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: "0.5rem",
+        alignItems: "start"
+      }}
+    >
+      <div>
+        <p
+          style={{
+            fontSize: "0.78rem",
+            color: "#e5e7eb"
+          }}
+        >
+          {title}
+        </p>
+        {subtitle && (
+          <p
+            style={{
+              fontSize: "0.72rem",
+              color: "#9ca3af"
+            }}
+          >
+            {subtitle}
+          </p>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "0.75rem",
+          alignItems: "center"
+        }}
+      >
+        <div
+          style={{
+            width: "130px",
+            height: "130px",
+            borderRadius: "999px",
+            backgroundImage: gradient,
+            border: "1px solid rgba(31,41,55,0.9)",
+            boxShadow: "0 0 0 1px rgba(15,23,42,1) inset"
+          }}
+        />
+
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            margin: 0,
+            fontSize: "0.75rem",
+            color: "#e5e7eb",
+            display: "grid",
+            gap: "0.25rem"
+          }}
+        >
+          {data.map((d) => (
+            <li
+              key={d.label}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem"
+              }}
+            >
+              <span
+                style={{
+                  width: "0.55rem",
+                  height: "0.55rem",
+                  borderRadius: "999px",
+                  backgroundColor: d.color
+                }}
+              />
+              <span>
+                {d.label}{" "}
+                <span
+                  style={{
+                    color: "#9ca3af"
+                  }}
+                >
+                  ({d.value})
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
