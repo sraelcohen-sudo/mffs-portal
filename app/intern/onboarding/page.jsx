@@ -16,9 +16,9 @@ export default function InternOnboarding() {
   const [whatsAppJoined, setWhatsAppJoined] = useState(null); // "yes" | "no" | null
 
   // Confidentiality agreement
-  const [confidentialityAgreement, setConfidentialityAgreement] = useState(null); // "agree" | "disagree" | null;
+  const [confidentialityAgreement, setConfidentialityAgreement] = useState(null); // "agree" | "disagree" | null
 
-  // OWL account info (local only for now)
+  // OWL account info (local only)
   const [owlName, setOwlName] = useState("");
   const [owlEmail, setOwlEmail] = useState("");
   const [owlPhone, setOwlPhone] = useState("");
@@ -26,14 +26,19 @@ export default function InternOnboarding() {
   const [owlMarkedComplete, setOwlMarkedComplete] = useState(false);
 
   const srspComplete =
-    srspPart1 && srspPart2 && srspPart3 && srspDocReviewed && srspAgreement === "agree";
+    srspPart1 &&
+    srspPart2 &&
+    srspPart3 &&
+    srspDocReviewed &&
+    srspAgreement === "agree";
+
   const confidentialityComplete = confidentialityAgreement === "agree";
   const whatsAppComplete = whatsAppJoined === "yes";
   const owlComplete =
-    !!owlName.trim() &&
-    !!owlEmail.trim() &&
-    !!owlPhone.trim() &&
-    !!owlSupervisor.trim() &&
+    owlName.trim() &&
+    owlEmail.trim() &&
+    owlPhone.trim() &&
+    owlSupervisor.trim() &&
     owlMarkedComplete;
 
   const totalSteps = 4;
@@ -100,8 +105,8 @@ export default function InternOnboarding() {
               <p className="section-subtitle">
                 A clear, guided onboarding flow so you can confirm required training,
                 agreements, and account details before seeing clients. In this prototype,
-                your responses are saved only in this browser; a later version will
-                sync to the MFFS portal.
+                your responses are saved only in this browser; a later version will sync
+                to the MFFS portal.
               </p>
             </div>
           </header>
@@ -191,7 +196,7 @@ export default function InternOnboarding() {
                 As part of your internship with Moving Forward Family Services (MFFS),
                 you are required to review the Suicide Risk Assessment and Safety
                 Planning (SRSP) training and use the SRSP form when needed during
-                sessions with clients. 
+                sessions with clients.
               </p>
 
               <div
@@ -364,7 +369,7 @@ export default function InternOnboarding() {
                 }}
               >
                 MFFS uses two WhatsApp groups to coordinate information and support
-                among interns and alumni. :contentReference[oaicite:2]{index=2}
+                among interns and alumni.
               </p>
 
               <ul
@@ -378,8 +383,8 @@ export default function InternOnboarding() {
                 }}
               >
                 <li>
-                  <strong>MFFS Internship Questions and Updates</strong>: for
-                  questions related to policies and procedures during your internship.
+                  <strong>MFFS Internship Questions and Updates</strong>: for questions
+                  related to policies and procedures during your internship.
                 </li>
                 <li>
                   <strong>MFFS Team Info Sharing</strong>: for sharing resources and
@@ -416,7 +421,7 @@ export default function InternOnboarding() {
                 >
                   Have you sent a message to be added to both WhatsApp groups?
                 </p>
-                <SegmentedChoice
+                <SegmentedYesNo
                   value={whatsAppJoined}
                   onChange={setWhatsAppJoined}
                   labelLeft="Yes, I have joined / requested"
@@ -471,9 +476,7 @@ export default function InternOnboarding() {
                 Moving Forward Family Services (MFFS) recognizes the importance of
                 protecting confidential information in any form (spoken, paper,
                 electronic) concerning service users, their families, employees, and
-                volunteers, as well as proprietary information of MFFS. This agreement
-                documents your commitment to maintain confidentiality during and after
-                your internship. :contentReference[oaicite:3]{index=3}
+                volunteers, as well as proprietary information of MFFS.
               </p>
 
               <div
@@ -519,7 +522,7 @@ export default function InternOnboarding() {
                   </li>
                   <li>
                     Do not release confidential information to any unauthorized source,
-                    including agency passwords or accounts (e.g., MFFS website, OWL).
+                    including agency passwords or accounts.
                   </li>
                   <li>
                     Access only the information you are authorized to access, and only
@@ -572,8 +575,8 @@ export default function InternOnboarding() {
                     reading files for yourself, friends, or colleagues).
                   </li>
                   <li>
-                    Making unauthorized notes or changes on a client&apos;s chart, or
-                    in files not belonging to your caseload.
+                    Making unauthorized notes or changes on a client&apos;s chart or in
+                    files not belonging to your caseload.
                   </li>
                   <li>
                     Discussing confidential information in public areas or with personal
@@ -662,7 +665,7 @@ export default function InternOnboarding() {
               >
                 To create your OWL Practice account, MFFS needs the following
                 information. This portal version lets you review and organize the
-                details you will send to the coordinator. :contentReference[oaicite:4]{index=4}
+                details you will send to the coordinator.
               </p>
 
               <ul
@@ -741,7 +744,11 @@ export default function InternOnboarding() {
                 />
                 <label
                   htmlFor="owl-complete"
-                  style={{ fontSize: "0.78rem", color: "#e5e7eb", cursor: "pointer" }}
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "#e5e7eb",
+                    cursor: "pointer"
+                  }}
                 >
                   I have reviewed these details and am ready to send them to the
                   onboarding coordinator.
@@ -831,7 +838,8 @@ function SegmentedChoice({ value, onChange, labelLeft, labelRight }) {
           fontSize: "0.78rem",
           border: "none",
           cursor: "pointer",
-          backgroundColor: value === "agree" ? "rgba(34,197,94,0.18)" : "transparent",
+          backgroundColor:
+            value === "agree" ? "rgba(34,197,94,0.18)" : "transparent",
           color: value === "agree" ? "#bbf7d0" : "#e5e7eb"
         }}
       >
@@ -851,6 +859,54 @@ function SegmentedChoice({ value, onChange, labelLeft, labelRight }) {
           backgroundColor:
             value === "disagree" ? "rgba(248,113,113,0.18)" : "transparent",
           color: value === "disagree" ? "#fecaca" : "#e5e7eb"
+        }}
+      >
+        {labelRight}
+      </button>
+    </div>
+  );
+}
+
+function SegmentedYesNo({ value, onChange, labelLeft, labelRight }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        borderRadius: "999px",
+        border: "1px solid rgba(148,163,184,0.9)",
+        overflow: "hidden",
+        backgroundColor: "#020617"
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange("yes")}
+        style={{
+          padding: "0.25rem 0.8rem",
+          fontSize: "0.78rem",
+          border: "none",
+          cursor: "pointer",
+          backgroundColor:
+            value === "yes" ? "rgba(34,197,94,0.18)" : "transparent",
+          color: value === "yes" ? "#bbf7d0" : "#e5e7eb"
+        }}
+      >
+        {labelLeft}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("no")}
+        style={{
+          padding: "0.25rem 0.8rem",
+          fontSize: "0.78rem",
+          borderLeft: "1px solid rgba(31,41,55,1)",
+          borderRight: "none",
+          borderTop: "none",
+          borderBottom: "none",
+          cursor: "pointer",
+          backgroundColor:
+            value === "no" ? "rgba(248,113,113,0.18)" : "transparent",
+          color: value === "no" ? "#fecaca" : "#e5e7eb"
         }}
       >
         {labelRight}
