@@ -12,9 +12,7 @@ export default function InternPDPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [statusTone, setStatusTone] = useState("neutral"); // neutral | success | error
 
-  const [interns, setInterns] = useState([]);
-  const [selectedInternId, setSelectedInternId] = useState("");
-  const [selectedIntern, setSelectedIntern] = useState(null);
+  const [intern, setIntern] = useState(null);
 
   const [events, setEvents] = useState([]);
   const [interests, setInterests] = useState([]);
@@ -37,36 +35,50 @@ export default function InternPDPage() {
     }
 
     const load = async () => {
+      setLoading(true);
       let internError = null;
       let eventError = null;
       let interestError = null;
 
       try {
-        // 1) Interns
-        const { data: internData, error: internErr } = await supabase
+        // 1) Get logged-in user
+        const {
+          data: { user },
+          error: userError
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          setStatusTone("error");
+          setStatusMessage(
+            "You are not logged in. Please log in again to view PD events."
+          );
+          setLoading(false);
+          return;
+        }
+
+        // 2) Load this intern's profile (auth UID == intern_profiles.id in your setup)
+        const { data: internRow, error: internErr } = await supabase
           .from("intern_profiles")
           .select("id, full_name, status")
-          .order("full_name", { ascending: true });
+          .eq("id", user.id)
+          .maybeSingle();
 
         internError = internErr;
 
-        if (internErr) {
-          console.error("Error loading intern_profiles (intern PD):", internErr);
-          setInterns([]);
+        if (internErr || !internRow) {
+          console.error("Error loading intern profile (intern PD):", internErr);
+          setIntern(null);
           setStatusTone("error");
           setStatusMessage(
-            "Could not load intern profiles. Check 'intern_profiles'."
+            "No intern profile is linked to this login. Please contact the administrator."
           );
-        } else {
-          const arr = Array.isArray(internData) ? internData : [];
-          setInterns(arr);
-          if (arr.length > 0) {
-            setSelectedInternId(arr[0].id);
-            setSelectedIntern(arr[0]);
-          }
+          setLoading(false);
+          return;
         }
 
-        // 2) PD events
+        setIntern(internRow);
+
+        // 3) PD events
         const { data: eventData, error: eventErr } = await supabase
           .from("professional_development_events")
           .select(
@@ -82,17 +94,15 @@ export default function InternPDPage() {
             eventErr
           );
           setEvents([]);
-          if (!internErr) {
-            setStatusTone("error");
-            setStatusMessage(
-              "Could not load PD events. Check 'professional_development_events'."
-            );
-          }
+          setStatusTone("error");
+          setStatusMessage(
+            "Could not load PD events. Check 'professional_development_events'."
+          );
         } else {
           setEvents(Array.isArray(eventData) ? eventData : []);
         }
 
-        // 3) Interests
+        // 4) Interests for all events (we'll filter in memory by intern)
         const { data: interestData, error: interestErr } = await supabase
           .from("professional_development_interests")
           .select("id, event_id, intern_id, status, created_at");
@@ -106,8 +116,7 @@ export default function InternPDPage() {
           );
           setInterests([]);
 
-          // If interns & events are fine, treat this as “not configured yet”, not a scary error
-          if (!internErr && !eventErr && !statusMessage) {
+          if (!eventErr && !statusMessage) {
             setStatusTone("neutral");
             setStatusMessage(
               "PD events are loaded, but interest tracking isn't fully configured yet (table 'professional_development_interests'). You can still browse events."
@@ -115,10 +124,10 @@ export default function InternPDPage() {
           }
         } else {
           setInterests(Array.isArray(interestData) ? interestData : []);
-          if (!internErr && !eventErr && !statusMessage) {
+          if (!eventErr && !statusMessage) {
             setStatusTone("neutral");
             setStatusMessage(
-              "Intern list and PD events loaded. You can record interest where supported."
+              "Your PD options are loaded. You can request spots in events that interest you."
             );
           }
         }
@@ -136,22 +145,12 @@ export default function InternPDPage() {
     load();
   }, [supabase, statusMessage]);
 
-  // Keep selectedIntern in sync with dropdown
-  useEffect(() => {
-    if (!selectedInternId || interns.length === 0) {
-      setSelectedIntern(null);
-      return;
-    }
-    const found = interns.find((i) => i.id === selectedInternId) || null;
-    setSelectedIntern(found);
-  }, [selectedInternId, interns]);
-
   const updateStatus = (tone, msg) => {
     setStatusTone(tone);
     setStatusMessage(msg);
   };
 
-  // Map interests by event
+  // Map interests by event id
   const interestsByEvent = new Map();
   for (const interest of interests) {
     if (!interestsByEvent.has(interest.event_id)) {
@@ -166,10 +165,10 @@ export default function InternPDPage() {
   };
 
   const getCurrentInternInterest = (eventId) => {
-    if (!selectedIntern) return null;
+    if (!intern) return null;
     const arr = interestsByEvent.get(eventId);
     if (!arr) return null;
-    return arr.find((i) => i.intern_id === selectedIntern.id) || null;
+    return arr.find((i) => i.intern_id === intern.id) || null;
   };
 
   const handleRequestSpot = async (eventId) => {
@@ -180,8 +179,11 @@ export default function InternPDPage() {
       );
       return;
     }
-    if (!selectedIntern) {
-      updateStatus("error", "Please select an intern first.");
+    if (!intern) {
+      updateStatus(
+        "error",
+        "No intern profile is linked to this login. Please contact the administrator."
+      );
       return;
     }
 
@@ -200,7 +202,7 @@ export default function InternPDPage() {
     try {
       const payload = {
         event_id: eventId,
-        intern_id: selectedIntern.id,
+        intern_id: intern.id,
         status: "requested"
       };
 
@@ -296,9 +298,9 @@ export default function InternPDPage() {
               <h1 className="section-title">PD & events</h1>
               <p className="section-subtitle">
                 Browse the program&apos;s professional development ecosystem and
-                register your interest in events. In this prototype, you can
-                switch between interns to simulate how different learners signal
-                their PD priorities.
+                register your interest in events. This view is personalized to
+                your login; executives will see aggregated patterns across all
+                interns.
               </p>
             </div>
           </header>
@@ -330,9 +332,9 @@ export default function InternPDPage() {
                 color: "#e5e7eb"
               }}
             >
-              Loading interns, PD events, and existing interests…
+              Loading your intern profile, PD events, and existing interests…
             </p>
-          ) : interns.length === 0 ? (
+          ) : !intern ? (
             <p
               style={{
                 marginTop: "0.8rem",
@@ -340,12 +342,12 @@ export default function InternPDPage() {
                 color: "#e5e7eb"
               }}
             >
-              No interns have been configured yet. Once rows exist in{" "}
-              <code>intern_profiles</code>, this page will light up.
+              No intern profile is linked to this account yet. An administrator
+              will need to create or connect an intern record for you.
             </p>
           ) : (
             <>
-              {/* Intern selector */}
+              {/* Logged-in intern identity */}
               <section
                 style={{
                   marginTop: "0.6rem",
@@ -355,7 +357,7 @@ export default function InternPDPage() {
                   border: "1px solid rgba(148,163,184,0.5)",
                   backgroundColor: "rgba(15,23,42,1)",
                   display: "grid",
-                  gap: "0.5rem"
+                  gap: "0.4rem"
                 }}
               >
                 <p
@@ -366,54 +368,29 @@ export default function InternPDPage() {
                     color: "#9ca3af"
                   }}
                 >
-                  Choose intern (demo mode)
+                  Logged in as
                 </p>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "0.7rem",
-                    alignItems: "center"
-                  }}
-                >
-                  <div>
-                    <p
-                      style={{
-                        fontSize: "0.7rem",
-                        color: "#9ca3af",
-                        marginBottom: "0.15rem"
-                      }}
-                    >
-                      Intern
-                    </p>
-                    <select
-                      value={selectedInternId}
-                      onChange={(e) => {
-                        setSelectedInternId(e.target.value);
-                        updateStatus("neutral", "");
-                      }}
-                      style={selectStyle}
-                    >
-                      {interns.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.full_name || "Unnamed intern"}
-                          {i.status ? ` (${i.status})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+
                 <p
                   style={{
-                    fontSize: "0.74rem",
-                    color: "#9ca3af",
-                    maxWidth: "40rem"
+                    fontSize: "0.9rem",
+                    color: "#e5e7eb",
+                    fontWeight: 500
                   }}
                 >
-                  In a future phase, this page will automatically show PD data for
-                  the logged-in intern only, while executives will see aggregated
-                  demand curves across the whole cohort.
+                  {intern.full_name || "Intern"}
                 </p>
+
+                {intern.status && (
+                  <p
+                    style={{
+                      fontSize: "0.78rem",
+                      color: "#9ca3af"
+                    }}
+                  >
+                    Status: {intern.status}
+                  </p>
+                )}
               </section>
 
               {/* Events "Netflix" lane */}
@@ -449,7 +426,7 @@ export default function InternPDPage() {
                     Scroll horizontally to explore upcoming trainings, workshops,
                     and conferences. Requesting a spot signals interest so the
                     program can prioritize funding and build a coherent learning
-                    journey.
+                    journey across the cohort.
                   </p>
                 </div>
 
@@ -461,7 +438,7 @@ export default function InternPDPage() {
                     }}
                   >
                     No professional development events have been configured yet.
-                    Use the executive PD view to add events.
+                    Once PD events are added, they will appear here.
                   </p>
                 ) : (
                   <div
@@ -625,8 +602,8 @@ export default function InternPDPage() {
                                     color: "#9ca3af"
                                   }}
                                 >
-                                  Requesting a spot signals interest; it doesn&apos;t
-                                  automatically register you.
+                                  Requesting a spot signals interest; it
+                                  doesn&apos;t automatically register you.
                                 </p>
                               )}
                               <p
@@ -643,12 +620,11 @@ export default function InternPDPage() {
                             <button
                               type="button"
                               disabled={
-                                !selectedIntern ||
+                                !intern ||
                                 !!interestForIntern ||
                                 requestingEventId === event.id
                               }
                               onClick={(e) => {
-                                // Prevent accidental text selection during dragging
                                 e.stopPropagation();
                                 handleRequestSpot(event.id);
                               }}
@@ -664,22 +640,21 @@ export default function InternPDPage() {
                                   : "rgba(15,23,42,0.95)",
                                 color: "#e5e7eb",
                                 cursor:
-                                  !selectedIntern ||
+                                  !intern ||
                                   !!interestForIntern ||
                                   requestingEventId === event.id
                                     ? "default"
                                     : "pointer",
                                 opacity:
-                                  !selectedIntern ||
-                                  requestingEventId === event.id
+                                  !intern || requestingEventId === event.id
                                     ? 0.9
                                     : 1,
                                 alignSelf: "flex-start",
                                 whiteSpace: "nowrap"
                               }}
                             >
-                              {!selectedIntern
-                                ? "Select intern first"
+                              {!intern
+                                ? "No intern profile"
                                 : interestForIntern
                                 ? "Interest recorded"
                                 : requestingEventId === event.id
