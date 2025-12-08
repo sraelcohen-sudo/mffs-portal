@@ -666,35 +666,67 @@ function extractIdentityTags(client) {
 }
 
 function buildGrantSummary(clients, startDate, endDate) {
-  const { activeClients, waitlistedClients, totalClients, identityCounts } =
-    computeAggregates(clients);
+  const {
+    activeClients,
+    waitlistedClients,
+    totalClients,
+    identityCounts
+  } = computeAggregates(clients);
 
   const parts = [];
 
+  // Overall numbers
   parts.push(
-    `Between ${startDate} and ${endDate}, Moving Forward Family Services provided or coordinated counselling support for ${totalClients} clients captured in this portal. Of these, ${activeClients} were active in service and ${waitlistedClients} were on a waitlist or pending assignment.`
+    `Between ${startDate} and ${endDate}, Moving Forward Family Services (MFFS) provided low-barrier counselling support for ${totalClients} clients captured in this portal. Of these, ${activeClients} were active in service and ${waitlistedClients} were on a waitlist or pending assignment.`
   );
 
+  // Identity breakdown as a bullet list
   if (identityCounts && identityCounts.size > 0) {
-    const identityPieces = [];
-    for (const [label, count] of identityCounts.entries()) {
-      identityPieces.push(`${count} ${label}`);
+    const all = Array.from(identityCounts.entries()).sort((a, b) => b[1] - a[1]);
+
+    const maxLines = 15;
+    const top = all.slice(0, maxLines);
+
+    const bulletLines = top.map(([label, count]) => {
+      const safeLabel =
+        label && typeof label === "string"
+          ? label.charAt(0).toUpperCase() + label.slice(1)
+          : "Unspecified identity";
+      const plural = count === 1 ? "client" : "clients";
+      return `- ${safeLabel}: ${count} ${plural}`;
+    });
+
+    if (all.length > top.length) {
+      const remaining = all.length - top.length;
+      bulletLines.push(
+        `- Additional identity categories recorded: ${remaining} more (grouped for brevity)`
+      );
     }
-    identityPieces.sort();
 
     parts.push(
-      `Within the limits of self-identification in this dataset, we recorded the following identity markers among clients: ${identityPieces.join(
-        "; "
-      )}. These categories are approximate and not exhaustive, but they help demonstrate who is currently accessing or waiting for support.`
+      [
+        `Between the dates of ${startDate} to ${endDate}, MFFS provided low-barrier counselling to the following self-identified persons:`,
+        "",
+        ...bulletLines
+      ].join("\n")
+    );
+
+    const identityLabelsSentence = top
+      .map(([label]) => label)
+      .filter(Boolean)
+      .join(", ");
+
+    parts.push(
+      `These identity markers (for example: ${identityLabelsSentence}) are based on voluntary self-identification and are not exhaustive, but they help demonstrate who is currently accessing or waiting for support through MFFS.`
     );
   } else {
     parts.push(
-      `Identity markers (e.g., LGBTQ2S+, Indigenous, racialized) were not fully available in the current dataset, but the portal is designed to support more detailed reporting as those fields are completed.`
+      `Identity markers (e.g., LGBTQ2S+, Indigenous, racialized, disabled, unemployed) were not fully available in the current dataset, but the portal is designed to support more detailed reporting as those fields are completed.`
     );
   }
 
   parts.push(
-    `These figures are intended to support grant reporting, equity-focused planning, and accountability to funders and communities. More detailed breakdowns (e.g., by site, intern, or program) can be generated from the underlying portal as needed.`
+    `These figures are intended to support grant reporting, equity-focused planning, and accountability to funders and communities. More detailed breakdowns (for example, by site, program, intern, or supervision team) can be generated from the underlying portal as needed.`
   );
 
   return parts.join("\n\n");
