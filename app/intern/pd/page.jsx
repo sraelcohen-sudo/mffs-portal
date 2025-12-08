@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import RoleChip from "@/app/components/RoleChip";
 import { createSupabaseClient } from "@/lib/supabaseClient";
@@ -20,6 +20,12 @@ export default function InternPDPage() {
   const [interests, setInterests] = useState([]);
   const [requestingEventId, setRequestingEventId] = useState(null);
 
+  // For horizontal scroll (Netflix-style)
+  const railRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [scrollStartX, setScrollStartX] = useState(0);
+
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
@@ -31,15 +37,21 @@ export default function InternPDPage() {
     }
 
     const load = async () => {
+      let internError = null;
+      let eventError = null;
+      let interestError = null;
+
       try {
         // 1) Interns
-        const { data: internData, error: internError } = await supabase
+        const { data: internData, error: internErr } = await supabase
           .from("intern_profiles")
           .select("id, full_name, status")
           .order("full_name", { ascending: true });
 
-        if (internError) {
-          console.error("Error loading intern_profiles (intern PD):", internError);
+        internError = internErr;
+
+        if (internErr) {
+          console.error("Error loading intern_profiles (intern PD):", internErr);
           setInterns([]);
           setStatusTone("error");
           setStatusMessage(
@@ -55,20 +67,22 @@ export default function InternPDPage() {
         }
 
         // 2) PD events
-        const { data: eventData, error: eventError } = await supabase
+        const { data: eventData, error: eventErr } = await supabase
           .from("professional_development_events")
           .select(
             "id, title, description, starts_at, location, admission_type, capacity, registration_slug, price, institution"
           )
           .order("starts_at", { ascending: true });
 
-        if (eventError) {
+        eventError = eventErr;
+
+        if (eventErr) {
           console.error(
             "Error loading professional_development_events (intern PD):",
-            eventError
+            eventErr
           );
           setEvents([]);
-          if (!internError) {
+          if (!internErr) {
             setStatusTone("error");
             setStatusMessage(
               "Could not load PD events. Check 'professional_development_events'."
@@ -79,24 +93,34 @@ export default function InternPDPage() {
         }
 
         // 3) Interests
-        const { data: interestData, error: interestError } = await supabase
+        const { data: interestData, error: interestErr } = await supabase
           .from("professional_development_interests")
           .select("id, event_id, intern_id, status, created_at");
 
-        if (interestError) {
+        interestError = interestErr;
+
+        if (interestErr) {
           console.error(
             "Error loading professional_development_interests (intern PD):",
-            interestError
+            interestErr
           );
           setInterests([]);
-          if (!internError) {
-            setStatusTone("error");
+
+          // If interns & events are fine, treat this as “not configured yet”, not a scary error
+          if (!internErr && !eventErr && !statusMessage) {
+            setStatusTone("neutral");
             setStatusMessage(
-              "Could not load PD interests. Check 'professional_development_interests'."
+              "PD events are loaded, but interest tracking isn't fully configured yet (table 'professional_development_interests'). You can still browse events."
             );
           }
         } else {
           setInterests(Array.isArray(interestData) ? interestData : []);
+          if (!internErr && !eventErr && !statusMessage) {
+            setStatusTone("neutral");
+            setStatusMessage(
+              "Intern list and PD events loaded. You can record interest where supported."
+            );
+          }
         }
       } catch (e) {
         console.error("Unexpected error loading intern PD page:", e);
@@ -110,7 +134,7 @@ export default function InternPDPage() {
     };
 
     load();
-  }, [supabase]);
+  }, [supabase, statusMessage]);
 
   // Keep selectedIntern in sync with dropdown
   useEffect(() => {
@@ -127,7 +151,7 @@ export default function InternPDPage() {
     setStatusMessage(msg);
   };
 
-  // Small helpers to compute interest counts & status
+  // Map interests by event
   const interestsByEvent = new Map();
   for (const interest of interests) {
     if (!interestsByEvent.has(interest.event_id)) {
@@ -145,10 +169,7 @@ export default function InternPDPage() {
     if (!selectedIntern) return null;
     const arr = interestsByEvent.get(eventId);
     if (!arr) return null;
-    return (
-      arr.find((i) => i.intern_id === selectedIntern.id) ||
-      null
-    );
+    return arr.find((i) => i.intern_id === selectedIntern.id) || null;
   };
 
   const handleRequestSpot = async (eventId) => {
@@ -194,7 +215,7 @@ export default function InternPDPage() {
         updateStatus(
           "error",
           error.message ||
-            "Could not record interest. Check Supabase policies / logs."
+            "Could not record interest. Check Supabase table / policies."
         );
       } else if (data) {
         setInterests((prev) => [data, ...prev]);
@@ -212,6 +233,25 @@ export default function InternPDPage() {
     } finally {
       setRequestingEventId(null);
     }
+  };
+
+  // ---- Horizontal scroll handlers ----
+
+  const handleRailMouseDown = (e) => {
+    if (!railRef.current) return;
+    setIsDragging(true);
+    setDragStartX(e.clientX);
+    setScrollStartX(railRef.current.scrollLeft);
+  };
+
+  const handleRailMouseMove = (e) => {
+    if (!isDragging || !railRef.current) return;
+    const dx = e.clientX - dragStartX;
+    railRef.current.scrollLeft = scrollStartX - dx;
+  };
+
+  const stopDragging = () => {
+    setIsDragging(false);
   };
 
   return (
@@ -256,9 +296,9 @@ export default function InternPDPage() {
               <h1 className="section-title">PD & events</h1>
               <p className="section-subtitle">
                 Browse the program&apos;s professional development ecosystem and
-                register your interest in events. In the prototype, you can switch
-                between interns to simulate how different learners signal their PD
-                priorities.
+                register your interest in events. In this prototype, you can
+                switch between interns to simulate how different learners signal
+                their PD priorities.
               </p>
             </div>
           </header>
@@ -370,13 +410,13 @@ export default function InternPDPage() {
                     maxWidth: "40rem"
                   }}
                 >
-                  In a future phase, this page will automatically show PD data for the
-                  logged-in intern only, while executives will see aggregated demand
-                  curves across the whole cohort.
+                  In a future phase, this page will automatically show PD data for
+                  the logged-in intern only, while executives will see aggregated
+                  demand curves across the whole cohort.
                 </p>
               </section>
 
-              {/* Events list */}
+              {/* Events "Netflix" lane */}
               <section
                 style={{
                   padding: "0.8rem 0.9rem",
@@ -406,9 +446,10 @@ export default function InternPDPage() {
                       maxWidth: "42rem"
                     }}
                   >
-                    These are program-level PD offerings, external trainings, and
-                    conferences. Your interest helps the program prioritize funding and
-                    build a coherent learning journey across placements.
+                    Scroll horizontally to explore upcoming trainings, workshops,
+                    and conferences. Requesting a spot signals interest so the
+                    program can prioritize funding and build a coherent learning
+                    journey.
                   </p>
                 </div>
 
@@ -419,18 +460,31 @@ export default function InternPDPage() {
                       color: "#e5e7eb"
                     }}
                   >
-                    No professional development events have been configured yet. Use
-                    the executive PD view to add events.
+                    No professional development events have been configured yet.
+                    Use the executive PD view to add events.
                   </p>
                 ) : (
                   <div
+                    ref={railRef}
+                    onMouseDown={handleRailMouseDown}
+                    onMouseMove={handleRailMouseMove}
+                    onMouseUp={stopDragging}
+                    onMouseLeave={stopDragging}
                     style={{
-                      display: "grid",
-                      gap: "0.65rem"
+                      marginTop: "0.3rem",
+                      display: "flex",
+                      gap: "0.7rem",
+                      overflowX: "auto",
+                      paddingBottom: "0.4rem",
+                      cursor: isDragging ? "grabbing" : "grab",
+                      userSelect: isDragging ? "none" : "auto",
+                      scrollbarWidth: "thin"
                     }}
                   >
                     {events.map((event) => {
-                      const interestForIntern = getCurrentInternInterest(event.id);
+                      const interestForIntern = getCurrentInternInterest(
+                        event.id
+                      );
                       const totalRequests = getEventInterestCount(event.id);
 
                       const dateLabel = event.starts_at
@@ -461,12 +515,15 @@ export default function InternPDPage() {
                         <article
                           key={event.id}
                           style={{
+                            flex: "0 0 260px",
                             borderRadius: "0.85rem",
                             border: "1px solid rgba(55,65,81,0.9)",
                             backgroundColor: "rgba(15,23,42,1)",
                             padding: "0.8rem 0.9rem",
                             display: "grid",
-                            gap: "0.35rem"
+                            gap: "0.35rem",
+                            boxShadow:
+                              "0 10px 25px rgba(15,23,42,0.85), 0 0 0 1px rgba(15,23,42,1)"
                           }}
                         >
                           <div
@@ -499,18 +556,6 @@ export default function InternPDPage() {
                                 </p>
                               )}
                             </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "0.35rem",
-                                alignItems: "center"
-                              }}
-                            >
-                              <EventTag label={admissionLabel} />
-                              <EventTag label={capacityLabel} />
-                              <EventTag label={priceLabel} />
-                            </div>
                           </div>
 
                           {event.description && (
@@ -518,8 +563,7 @@ export default function InternPDPage() {
                               style={{
                                 fontSize: "0.78rem",
                                 color: "#d1d5db",
-                                marginTop: "0.1rem",
-                                maxWidth: "40rem"
+                                marginTop: "0.1rem"
                               }}
                             >
                               {event.description}
@@ -530,7 +574,7 @@ export default function InternPDPage() {
                             style={{
                               fontSize: "0.76rem",
                               color: "#9ca3af",
-                              marginTop: "0.15rem"
+                              marginTop: "0.1rem"
                             }}
                           >
                             <span style={{ color: "#e5e7eb" }}>{dateLabel}</span>
@@ -545,11 +589,22 @@ export default function InternPDPage() {
                           <div
                             style={{
                               display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginTop: "0.3rem",
-                              gap: "0.6rem",
-                              flexWrap: "wrap"
+                              flexWrap: "wrap",
+                              gap: "0.35rem",
+                              marginTop: "0.2rem"
+                            }}
+                          >
+                            <EventTag label={admissionLabel} />
+                            <EventTag label={capacityLabel} />
+                            <EventTag label={priceLabel} />
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "0.25rem",
+                              marginTop: "0.35rem"
                             }}
                           >
                             <div>
@@ -571,8 +626,7 @@ export default function InternPDPage() {
                                   }}
                                 >
                                   Requesting a spot signals interest; it doesn&apos;t
-                                  automatically register you. The program decides how
-                                  to allocate funded and unfunded seats.
+                                  automatically register you.
                                 </p>
                               )}
                               <p
@@ -593,10 +647,14 @@ export default function InternPDPage() {
                                 !!interestForIntern ||
                                 requestingEventId === event.id
                               }
-                              onClick={() => handleRequestSpot(event.id)}
+                              onClick={(e) => {
+                                // Prevent accidental text selection during dragging
+                                e.stopPropagation();
+                                handleRequestSpot(event.id);
+                              }}
                               style={{
                                 fontSize: "0.8rem",
-                                padding: "0.4rem 0.9rem",
+                                padding: "0.35rem 0.8rem",
                                 borderRadius: "999px",
                                 border: "1px solid rgba(129,140,248,0.9)",
                                 backgroundColor: interestForIntern
@@ -616,6 +674,7 @@ export default function InternPDPage() {
                                   requestingEventId === event.id
                                     ? 0.9
                                     : 1,
+                                alignSelf: "flex-start",
                                 whiteSpace: "nowrap"
                               }}
                             >
