@@ -543,24 +543,25 @@ export default function ExecutiveGrantsPage() {
                 </p>
 
                 <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-                    gap: "0.7rem"
-                  }}
-                >
-                  <PieChart
-                    title="Client status"
-                    subtitle="Active vs waitlisted vs other"
-                    data={buildStatusPieData(aggregates)}
-                  />
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.4rem"
+  }}
+>
+  <PieChart
+    title="Client status"
+    subtitle="Active vs waitlisted vs other"
+    data={buildStatusPieData(aggregates)}
+  />
 
-                  <PieChart
-                    title="Identity tags"
-                    subtitle="Top categories by count"
-                    data={buildIdentityPieData(aggregates.identityCounts)}
-                  />
-                </div>
+  <PieChart
+    title="Identity tags"
+    subtitle="Top categories by count"
+    data={buildIdentityPieData(aggregates.identityCounts)}
+  />
+</div>
+
               </div>
             </section>
 
