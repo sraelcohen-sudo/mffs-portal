@@ -97,16 +97,16 @@ export default function InternOnboarding() {
         </aside>
 
         {/* Main */}
-        <section className="card" style={{ padding: "1.3rem 1.4rem" }}>
+        <section className="card" style={{ padding: "1.5rem 1.6rem" }}>
           <header className="section-header">
             <div>
               <RoleChip role="Intern" />
               <h1 className="section-title">Onboarding & documents</h1>
               <p className="section-subtitle">
                 A clear, guided onboarding flow so you can confirm required training,
-                agreements, and account details before seeing clients. In this prototype,
-                your responses are saved only in this browser; a later version will sync
-                to the MFFS portal.
+                agreements, and account details before seeing clients. In this
+                prototype, your responses are saved only in this browser; a later
+                version will sync to the MFFS portal.
               </p>
             </div>
           </header>
@@ -114,34 +114,34 @@ export default function InternOnboarding() {
           {/* Progress strip */}
           <section
             style={{
-              marginTop: "0.7rem",
-              marginBottom: "1rem",
-              padding: "0.75rem 0.9rem",
-              borderRadius: "0.9rem",
+              marginTop: "1rem",
+              marginBottom: "1.3rem",
+              padding: "0.9rem 1rem",
+              borderRadius: "1rem",
               border: "1px solid rgba(148,163,184,0.5)",
               backgroundColor: "rgba(15,23,42,1)",
               display: "flex",
               flexWrap: "wrap",
               justifyContent: "space-between",
-              gap: "0.7rem",
+              gap: "0.9rem",
               alignItems: "center"
             }}
           >
             <div>
               <p
                 style={{
-                  fontSize: "0.74rem",
+                  fontSize: "0.76rem",
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
                   color: "#9ca3af",
-                  marginBottom: "0.15rem"
+                  marginBottom: "0.2rem"
                 }}
               >
                 Onboarding progress (local only)
               </p>
               <p
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "0.84rem",
                   color: "#e5e7eb"
                 }}
               >
@@ -150,9 +150,10 @@ export default function InternOnboarding() {
             </div>
             <p
               style={{
-                fontSize: "0.72rem",
+                fontSize: "0.74rem",
                 color: "#9ca3af",
-                maxWidth: "18rem"
+                maxWidth: "20rem",
+                lineHeight: 1.5
               }}
             >
               In a future version, this checklist will update your status for the
@@ -160,16 +161,27 @@ export default function InternOnboarding() {
             </p>
           </section>
 
-          {/* Content grid */}
-          <div className="card-grid">
+          {/* Vertical stack of large cards */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              gap: "1.1rem"
+            }}
+          >
             {/* STEP 1 – SRSP training */}
             <section
               className="card-soft"
-              style={{ padding: "0.9rem 1rem", display: "grid", gap: "0.55rem" }}
+              style={{
+                padding: "1.1rem 1.2rem",
+                borderRadius: "1rem",
+                display: "grid",
+                gap: "0.7rem"
+              }}
             >
               <p
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.76rem",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   color: "#9ca3af"
@@ -179,7 +191,7 @@ export default function InternOnboarding() {
               </p>
               <h2
                 style={{
-                  fontSize: "0.95rem",
+                  fontSize: "1.02rem",
                   fontWeight: 500,
                   color: "#f9fafb"
                 }}
@@ -188,9 +200,10 @@ export default function InternOnboarding() {
               </h2>
               <p
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "0.84rem",
                   color: "#cbd5f5",
-                  lineHeight: 1.6
+                  lineHeight: 1.7,
+                  maxWidth: "46rem"
                 }}
               >
                 As part of your internship with Moving Forward Family Services (MFFS),
@@ -202,17 +215,17 @@ export default function InternOnboarding() {
               <div
                 style={{
                   marginTop: "0.2rem",
-                  padding: "0.65rem 0.7rem",
-                  borderRadius: "0.8rem",
+                  padding: "0.75rem 0.8rem",
+                  borderRadius: "0.95rem",
                   border: "1px solid rgba(55,65,81,0.9)",
                   backgroundColor: "rgba(15,23,42,1)",
                   display: "grid",
-                  gap: "0.45rem"
+                  gap: "0.5rem"
                 }}
               >
                 <p
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#e5e7eb",
                     marginBottom: "0.1rem"
                   }}
@@ -222,12 +235,12 @@ export default function InternOnboarding() {
                 </p>
                 <ul
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#cbd5f5",
                     listStyle: "disc",
-                    paddingLeft: "1.1rem",
+                    paddingLeft: "1.2rem",
                     display: "grid",
-                    gap: "0.2rem"
+                    gap: "0.22rem"
                   }}
                 >
                   <li>
@@ -273,7 +286,7 @@ export default function InternOnboarding() {
                   style={{
                     marginTop: "0.1rem",
                     display: "grid",
-                    gap: "0.25rem"
+                    gap: "0.28rem"
                   }}
                 >
                   <CheckboxLine
@@ -300,14 +313,14 @@ export default function InternOnboarding() {
 
                 <div
                   style={{
-                    marginTop: "0.4rem",
+                    marginTop: "0.5rem",
                     display: "grid",
-                    gap: "0.25rem"
+                    gap: "0.3rem"
                   }}
                 >
                   <p
                     style={{
-                      fontSize: "0.78rem",
+                      fontSize: "0.8rem",
                       color: "#e5e7eb"
                     }}
                   >
@@ -325,8 +338,8 @@ export default function InternOnboarding() {
 
                 <p
                   style={{
-                    marginTop: "0.1rem",
-                    fontSize: "0.72rem",
+                    marginTop: "0.12rem",
+                    fontSize: "0.74rem",
                     color: srspComplete ? "#bbf7d0" : "#9ca3af"
                   }}
                 >
@@ -340,11 +353,16 @@ export default function InternOnboarding() {
             {/* STEP 2 – WhatsApp groups */}
             <section
               className="card-soft"
-              style={{ padding: "0.9rem 1rem", display: "grid", gap: "0.55rem" }}
+              style={{
+                padding: "1.1rem 1.2rem",
+                borderRadius: "1rem",
+                display: "grid",
+                gap: "0.7rem"
+              }}
             >
               <p
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.76rem",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   color: "#9ca3af"
@@ -354,7 +372,7 @@ export default function InternOnboarding() {
               </p>
               <h2
                 style={{
-                  fontSize: "0.95rem",
+                  fontSize: "1.02rem",
                   fontWeight: 500,
                   color: "#f9fafb"
                 }}
@@ -363,9 +381,10 @@ export default function InternOnboarding() {
               </h2>
               <p
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "0.84rem",
                   color: "#cbd5f5",
-                  lineHeight: 1.6
+                  lineHeight: 1.7,
+                  maxWidth: "46rem"
                 }}
               >
                 MFFS uses two WhatsApp groups to coordinate information and support
@@ -374,10 +393,10 @@ export default function InternOnboarding() {
 
               <ul
                 style={{
-                  fontSize: "0.78rem",
+                  fontSize: "0.8rem",
                   color: "#cbd5f5",
                   listStyle: "disc",
-                  paddingLeft: "1.1rem",
+                  paddingLeft: "1.2rem",
                   display: "grid",
                   gap: "0.25rem"
                 }}
@@ -395,9 +414,10 @@ export default function InternOnboarding() {
 
               <p
                 style={{
-                  fontSize: "0.78rem",
+                  fontSize: "0.8rem",
                   color: "#e5e7eb",
-                  marginTop: "0.1rem"
+                  marginTop: "0.15rem",
+                  maxWidth: "44rem"
                 }}
               >
                 To be added, text{" "}
@@ -408,14 +428,14 @@ export default function InternOnboarding() {
 
               <div
                 style={{
-                  marginTop: "0.5rem",
+                  marginTop: "0.6rem",
                   display: "grid",
-                  gap: "0.25rem"
+                  gap: "0.3rem"
                 }}
               >
                 <p
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#e5e7eb"
                   }}
                 >
@@ -431,8 +451,8 @@ export default function InternOnboarding() {
 
               <p
                 style={{
-                  marginTop: "0.1rem",
-                  fontSize: "0.72rem",
+                  marginTop: "0.12rem",
+                  fontSize: "0.74rem",
                   color: whatsAppComplete ? "#bbf7d0" : "#9ca3af"
                 }}
               >
@@ -445,11 +465,16 @@ export default function InternOnboarding() {
             {/* STEP 3 – Confidentiality agreement */}
             <section
               className="card-soft"
-              style={{ padding: "0.9rem 1rem", display: "grid", gap: "0.55rem" }}
+              style={{
+                padding: "1.1rem 1.2rem",
+                borderRadius: "1rem",
+                display: "grid",
+                gap: "0.7rem"
+              }}
             >
               <p
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.76rem",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   color: "#9ca3af"
@@ -459,7 +484,7 @@ export default function InternOnboarding() {
               </p>
               <h2
                 style={{
-                  fontSize: "0.95rem",
+                  fontSize: "1.02rem",
                   fontWeight: 500,
                   color: "#f9fafb"
                 }}
@@ -468,9 +493,10 @@ export default function InternOnboarding() {
               </h2>
               <p
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "0.84rem",
                   color: "#cbd5f5",
-                  lineHeight: 1.6
+                  lineHeight: 1.7,
+                  maxWidth: "46rem"
                 }}
               >
                 Moving Forward Family Services (MFFS) recognizes the importance of
@@ -482,19 +508,19 @@ export default function InternOnboarding() {
               <div
                 style={{
                   marginTop: "0.2rem",
-                  padding: "0.65rem 0.7rem",
-                  borderRadius: "0.8rem",
+                  padding: "0.75rem 0.8rem",
+                  borderRadius: "0.95rem",
                   border: "1px solid rgba(55,65,81,0.9)",
                   backgroundColor: "rgba(15,23,42,1)",
                   display: "grid",
-                  gap: "0.45rem",
-                  maxHeight: "16rem",
+                  gap: "0.5rem",
+                  maxHeight: "18rem",
                   overflowY: "auto"
                 }}
               >
                 <p
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#e5e7eb",
                     fontWeight: 500
                   }}
@@ -503,10 +529,10 @@ export default function InternOnboarding() {
                 </p>
                 <ul
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#cbd5f5",
                     listStyle: "disc",
-                    paddingLeft: "1.1rem",
+                    paddingLeft: "1.2rem",
                     display: "grid",
                     gap: "0.25rem"
                   }}
@@ -552,20 +578,20 @@ export default function InternOnboarding() {
 
                 <p
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#e5e7eb",
                     fontWeight: 500,
-                    marginTop: "0.4rem"
+                    marginTop: "0.45rem"
                   }}
                 >
                   Examples of breaches of confidentiality (what you must not do)
                 </p>
                 <ul
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#cbd5f5",
                     listStyle: "disc",
-                    paddingLeft: "1.1rem",
+                    paddingLeft: "1.2rem",
                     display: "grid",
                     gap: "0.25rem"
                   }}
@@ -595,14 +621,14 @@ export default function InternOnboarding() {
 
               <div
                 style={{
-                  marginTop: "0.5rem",
+                  marginTop: "0.6rem",
                   display: "grid",
-                  gap: "0.25rem"
+                  gap: "0.3rem"
                 }}
               >
                 <p
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#e5e7eb"
                   }}
                 >
@@ -621,8 +647,8 @@ export default function InternOnboarding() {
 
               <p
                 style={{
-                  marginTop: "0.1rem",
-                  fontSize: "0.72rem",
+                  marginTop: "0.12rem",
+                  fontSize: "0.74rem",
                   color: confidentialityComplete ? "#bbf7d0" : "#9ca3af"
                 }}
               >
@@ -635,11 +661,16 @@ export default function InternOnboarding() {
             {/* STEP 4 – OWL account details */}
             <section
               className="card-soft"
-              style={{ padding: "0.9rem 1rem", display: "grid", gap: "0.55rem" }}
+              style={{
+                padding: "1.1rem 1.2rem",
+                borderRadius: "1rem",
+                display: "grid",
+                gap: "0.7rem"
+              }}
             >
               <p
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.76rem",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   color: "#9ca3af"
@@ -649,7 +680,7 @@ export default function InternOnboarding() {
               </p>
               <h2
                 style={{
-                  fontSize: "0.95rem",
+                  fontSize: "1.02rem",
                   fontWeight: 500,
                   color: "#f9fafb"
                 }}
@@ -658,9 +689,10 @@ export default function InternOnboarding() {
               </h2>
               <p
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "0.84rem",
                   color: "#cbd5f5",
-                  lineHeight: 1.6
+                  lineHeight: 1.7,
+                  maxWidth: "46rem"
                 }}
               >
                 To create your OWL Practice account, MFFS needs the following
@@ -670,10 +702,10 @@ export default function InternOnboarding() {
 
               <ul
                 style={{
-                  fontSize: "0.78rem",
+                  fontSize: "0.8rem",
                   color: "#cbd5f5",
                   listStyle: "disc",
-                  paddingLeft: "1.1rem",
+                  paddingLeft: "1.2rem",
                   display: "grid",
                   gap: "0.25rem"
                 }}
@@ -689,16 +721,17 @@ export default function InternOnboarding() {
 
               <div
                 style={{
-                  marginTop: "0.4rem",
+                  marginTop: "0.5rem",
                   display: "grid",
-                  gap: "0.4rem"
+                  gap: "0.45rem",
+                  maxWidth: "40rem"
                 }}
               >
                 <LabeledInput
                   label="Full name (as it should appear on OWL)"
                   value={owlName}
                   onChange={setOwlName}
-                  placeholder="e.g., Srael Cohen"
+                  placeholder="e.g., John/Jane Dow"
                 />
                 <LabeledInput
                   label="MFFS email address"
@@ -722,10 +755,10 @@ export default function InternOnboarding() {
 
               <div
                 style={{
-                  marginTop: "0.5rem",
+                  marginTop: "0.6rem",
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.4rem"
+                  gap: "0.45rem"
                 }}
               >
                 <input
@@ -734,9 +767,9 @@ export default function InternOnboarding() {
                   checked={owlMarkedComplete}
                   onChange={(e) => setOwlMarkedComplete(e.target.checked)}
                   style={{
-                    width: "0.9rem",
-                    height: "0.9rem",
-                    borderRadius: "0.2rem",
+                    width: "1rem",
+                    height: "1rem",
+                    borderRadius: "0.25rem",
                     border: "1px solid rgba(148,163,184,0.9)",
                     backgroundColor: "#020617",
                     cursor: "pointer"
@@ -745,7 +778,7 @@ export default function InternOnboarding() {
                 <label
                   htmlFor="owl-complete"
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.8rem",
                     color: "#e5e7eb",
                     cursor: "pointer"
                   }}
@@ -757,8 +790,8 @@ export default function InternOnboarding() {
 
               <p
                 style={{
-                  marginTop: "0.1rem",
-                  fontSize: "0.72rem",
+                  marginTop: "0.12rem",
+                  fontSize: "0.74rem",
                   color: owlComplete ? "#bbf7d0" : "#9ca3af"
                 }}
               >
@@ -769,9 +802,10 @@ export default function InternOnboarding() {
 
               <p
                 style={{
-                  marginTop: "0.4rem",
-                  fontSize: "0.74rem",
-                  color: "#9ca3af"
+                  marginTop: "0.45rem",
+                  fontSize: "0.76rem",
+                  color: "#9ca3af",
+                  maxWidth: "44rem"
                 }}
               >
                 In the current MFFS process, you send this information by email to the
@@ -794,8 +828,8 @@ function CheckboxLine({ checked, onChange, label }) {
       style={{
         display: "flex",
         alignItems: "flex-start",
-        gap: "0.4rem",
-        fontSize: "0.78rem",
+        gap: "0.45rem",
+        fontSize: "0.8rem",
         color: "#e5e7eb",
         cursor: "pointer"
       }}
@@ -805,10 +839,10 @@ function CheckboxLine({ checked, onChange, label }) {
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         style={{
-          marginTop: "0.1rem",
-          width: "0.9rem",
-          height: "0.9rem",
-          borderRadius: "0.2rem",
+          marginTop: "0.12rem",
+          width: "1rem",
+          height: "1rem",
+          borderRadius: "0.25rem",
           border: "1px solid rgba(148,163,184,0.9)",
           backgroundColor: "#020617",
           cursor: "pointer"
@@ -834,8 +868,8 @@ function SegmentedChoice({ value, onChange, labelLeft, labelRight }) {
         type="button"
         onClick={() => onChange("agree")}
         style={{
-          padding: "0.25rem 0.8rem",
-          fontSize: "0.78rem",
+          padding: "0.3rem 0.95rem",
+          fontSize: "0.8rem",
           border: "none",
           cursor: "pointer",
           backgroundColor:
@@ -849,8 +883,8 @@ function SegmentedChoice({ value, onChange, labelLeft, labelRight }) {
         type="button"
         onClick={() => onChange("disagree")}
         style={{
-          padding: "0.25rem 0.8rem",
-          fontSize: "0.78rem",
+          padding: "0.3rem 0.95rem",
+          fontSize: "0.8rem",
           borderLeft: "1px solid rgba(31,41,55,1)",
           borderRight: "none",
           borderTop: "none",
@@ -882,8 +916,8 @@ function SegmentedYesNo({ value, onChange, labelLeft, labelRight }) {
         type="button"
         onClick={() => onChange("yes")}
         style={{
-          padding: "0.25rem 0.8rem",
-          fontSize: "0.78rem",
+          padding: "0.3rem 0.95rem",
+          fontSize: "0.8rem",
           border: "none",
           cursor: "pointer",
           backgroundColor:
@@ -897,8 +931,8 @@ function SegmentedYesNo({ value, onChange, labelLeft, labelRight }) {
         type="button"
         onClick={() => onChange("no")}
         style={{
-          padding: "0.25rem 0.8rem",
-          fontSize: "0.78rem",
+          padding: "0.3rem 0.95rem",
+          fontSize: "0.8rem",
           borderLeft: "1px solid rgba(31,41,55,1)",
           borderRight: "none",
           borderTop: "none",
@@ -917,10 +951,10 @@ function SegmentedYesNo({ value, onChange, labelLeft, labelRight }) {
 
 function LabeledInput({ label, value, onChange, placeholder }) {
   return (
-    <div style={{ display: "grid", gap: "0.18rem" }}>
+    <div style={{ display: "grid", gap: "0.2rem" }}>
       <label
         style={{
-          fontSize: "0.76rem",
+          fontSize: "0.78rem",
           color: "#e5e7eb"
         }}
       >
@@ -931,9 +965,9 @@ function LabeledInput({ label, value, onChange, placeholder }) {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         style={{
-          fontSize: "0.78rem",
-          padding: "0.35rem 0.6rem",
-          borderRadius: "0.5rem",
+          fontSize: "0.8rem",
+          padding: "0.4rem 0.7rem",
+          borderRadius: "0.6rem",
           border: "1px solid rgba(75,85,99,0.9)",
           backgroundColor: "#020617",
           color: "#f9fafb",
