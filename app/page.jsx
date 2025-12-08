@@ -4,41 +4,47 @@ export default function HomePage() {
   return (
     <main className="main-shell">
       <div className="main-shell-inner">
-        {/* Hero card */}
-        <section className="card" style={{ padding: "1.5rem 1.6rem" }}>
+        <section
+          className="card"
+          style={{
+            padding: "1.8rem 2rem",
+            display: "grid",
+            gap: "1.6rem"
+          }}
+        >
+          {/* Header */}
           <header className="section-header">
             <div>
-              <h1 className="section-title">
+              <h1 className="section-title" style={{ marginBottom: "0.4rem" }}>
                 Moving Forward Family Services Portal
               </h1>
-              <p className="section-subtitle">
-                A prototype of an integrated system for onboarding, supervision,
-                professional development, and grant-ready reporting—designed for
-                interns, supervisors, and MFFS leadership.
+              <p className="section-subtitle" style={{ maxWidth: "50rem" }}>
+                A unified portal for onboarding, supervision, professional
+                development, client assignments, and grant-ready reporting —
+                streamlined for interns, supervisors, and executive leadership.
               </p>
             </div>
           </header>
 
-          {/* Quick explanation strip */}
+          {/* Three-pill explainer */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "0.9rem",
-              marginBottom: "1.3rem"
+              gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+              gap: "1rem"
             }}
           >
             <PillCard
-              title="One portal, three experiences"
-              body="Each role signs in to the same portal but sees only what they need: interns, supervisors, and executives have tailored views."
+              title="One portal, role-based access"
+              body="Each role signs in to the same system but only sees the panels relevant to their work — reducing clutter and protecting privacy."
             />
             <PillCard
-              title="Privacy by design"
-              body="Client names and case notes stay in clinical records. The portal focuses on hours, counts, and characteristics—not identities."
+              title="Privacy-first design"
+              body="Client identities are not shown anywhere in supervision or executive dashboards. Only aggregated and anonymized data is surfaced."
             />
             <PillCard
-              title="Grant-ready data"
-              body="Structured, anonymized data flows into high-level dashboards that support grants, reporting, and strategic decisions."
+              title="Grant-ready analytics"
+              body="Executives receive real-time capacity dashboards, identity breakdowns, and funder-aligned metrics derived from anonymized client characteristics."
             />
           </div>
 
@@ -46,64 +52,63 @@ export default function HomePage() {
           <div
             className="card-grid"
             style={{
-              alignItems: "stretch",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))"
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "1.1rem"
             }}
           >
-            {/* Intern card */}
             <RoleCard
               badge="Interns"
-              title="Supported, clear, and trackable training"
-              body="Interns see a clear onboarding journey, track supervision hours, and view anonymized caseload and session counts that align with funder reporting."
+              title="Supported training, clear progression"
+              body="Interns see onboarding tasks, supervision logs, required competencies, PD events, and anonymized counts for their caseload and capacity."
               bullets={[
-                "Onboarding & required documents",
-                "Supervision & hours with receipts",
-                "Clients & session counts (anonymized)"
+                "Onboarding checklist",
+                "Supervision logs + hour totals",
+                "Anonymous client/session counts"
               ]}
               href="/login"
-              cta="Preview intern experience"
+              cta="Enter as intern"
             />
 
-            {/* Supervisor card */}
             <RoleCard
               badge="Supervisors"
-              title="Structure without extra admin"
-              body="Supervisors see their assigned interns, log supervision sessions, and manage invoices—keeping client details in clinical systems and admin load reasonable."
+              title="Structured oversight without admin load"
+              body="Supervisors can view assigned interns, log supervision hours, track focus areas, and maintain role boundaries with no client identifiers."
               bullets={[
-                "Assigned interns & caseloads",
-                "Supervision logs by date & format",
-                "Invoices & receipts for supervision"
+                "Assigned interns",
+                "Supervision session logging",
+                "Invoices & reporting"
               ]}
               href="/login"
-              cta="Preview supervisor experience"
+              cta="Enter as supervisor"
             />
 
-            {/* Executive / Training card */}
             <RoleCard
               badge="Executive & training"
-              title="Capacity, PD, and impact at a glance"
-              body="Leadership sees clients & capacity, PD calendars, and grant-ready metrics built from anonymized data, not case files."
+              title="Capacity, PD, and grant metrics at a glance"
+              body="Executives can review capacity across the organization, oversee PD uptake, and run grant-ready identity and volume reports instantly."
               bullets={[
-                "Clients & capacity across sites",
-                "Professional development calendar",
-                "Grant & reporting metrics"
+                "Clients & capacity dashboards",
+                "PD event ecosystem",
+                "Grant & reporting summaries"
               ]}
               href="/login"
-              cta="Preview executive experience"
+              cta="Enter as executive"
             />
           </div>
 
-          {/* Footer hint */}
+          {/* Footer hint — updated for production */}
           <p
             style={{
-              marginTop: "1.4rem",
+              marginTop: "0.4rem",
               fontSize: "0.72rem",
-              color: "#9ca3af"
+              color: "#9ca3af",
+              textAlign: "center",
+              opacity: 0.9
             }}
           >
-            This is a non-functional prototype: logins and data are mocked so we
-            can focus on workflows, boundaries, and the overall vision before
-            wiring it to a live database.
+            This portal is an evolving internal tool designed to respect
+            clinical boundaries and enhance training, supervision, and strategic
+            decision-making across MFFS.
           </p>
         </section>
       </div>
@@ -111,20 +116,25 @@ export default function HomePage() {
   );
 }
 
+/* ─────────────────────────────── */
+/* Subcomponents */
+/* ─────────────────────────────── */
+
 function PillCard({ title, body }) {
   return (
     <div
       className="card-soft"
       style={{
-        padding: "0.85rem 0.95rem",
-        borderRadius: "0.9rem"
+        padding: "1rem 1.1rem",
+        borderRadius: "0.9rem",
+        display: "grid",
+        gap: "0.3rem"
       }}
     >
       <h2
         style={{
-          fontSize: "0.85rem",
+          fontSize: "0.9rem",
           fontWeight: 500,
-          marginBottom: "0.25rem",
           color: "#e5e7eb"
         }}
       >
@@ -145,49 +155,56 @@ function PillCard({ title, body }) {
 
 function RoleCard({ badge, title, body, bullets, href, cta }) {
   return (
-    <div className="card-soft" style={{ padding: "1rem 1.1rem" }}>
+    <div
+      className="card-soft"
+      style={{
+        padding: "1.2rem 1.3rem",
+        borderRadius: "0.9rem",
+        display: "grid",
+        gap: "0.6rem"
+      }}
+    >
       <p
         style={{
           fontSize: "0.7rem",
-          letterSpacing: "0.12em",
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
-          color: "#9ca3af",
-          marginBottom: "0.25rem"
+          color: "#9ca3af"
         }}
       >
         {badge}
       </p>
+
       <h2
         style={{
-          fontSize: "0.98rem",
+          fontSize: "1.0rem",
           fontWeight: 500,
-          marginBottom: "0.35rem",
           color: "#f9fafb"
         }}
       >
         {title}
       </h2>
+
       <p
         style={{
-          fontSize: "0.8rem",
+          fontSize: "0.82rem",
           color: "#cbd5f5",
-          lineHeight: 1.5,
-          marginBottom: "0.5rem"
+          lineHeight: 1.45
         }}
       >
         {body}
       </p>
-      {bullets && bullets.length > 0 && (
+
+      {bullets && (
         <ul
           style={{
             listStyle: "disc",
             paddingLeft: "1.1rem",
             margin: 0,
             display: "grid",
-            gap: "0.18rem",
+            gap: "0.22rem",
             fontSize: "0.75rem",
-            color: "#9ca3af",
-            marginBottom: "0.7rem"
+            color: "#9ca3af"
           }}
         >
           {bullets.map((item) => (
@@ -195,6 +212,7 @@ function RoleCard({ badge, title, body, bullets, href, cta }) {
           ))}
         </ul>
       )}
+
       <Link href={href}>
         <button
           type="button"
@@ -204,9 +222,11 @@ function RoleCard({ badge, title, body, bullets, href, cta }) {
             background:
               "radial-gradient(circle at top left, rgba(45,212,191,0.16), rgba(15,23,42,1))",
             color: "#a7f3d0",
-            padding: "0.35rem 0.85rem",
+            padding: "0.45rem 1rem",
             fontSize: "0.78rem",
-            cursor: "pointer"
+            cursor: "pointer",
+            marginTop: "0.2rem",
+            width: "fit-content"
           }}
         >
           {cta}
