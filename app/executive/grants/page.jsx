@@ -69,8 +69,6 @@ export default function ExecutiveGrantsPage() {
           console.warn("Could not load supervisor emails for grants page:", e);
         }
 
-        // If you later add an executives table, you can also pull emails here.
-
         setContactEmails(Array.from(emailsSet));
         setEmailStatus("");
       } catch (e) {
@@ -140,8 +138,10 @@ export default function ExecutiveGrantsPage() {
         setStatusMessage(
           "No client records found for this range (or for the current data)."
         );
-      } else if (!statusMessage) {
-        setStatusMessage("Grant summary generated.");
+      } else {
+        setStatusMessage(
+          `Grant summary generated from ${rows.length} clients in this date range.`
+        );
       }
     } catch (e) {
       console.error("Unexpected error building grant summary:", e);
@@ -154,6 +154,15 @@ export default function ExecutiveGrantsPage() {
       setLoading(false);
     }
   };
+
+  // AUTO-RUN once dates are set (so you see data right away)
+  useEffect(() => {
+    if (startDate && endDate) {
+      // fire and forget; we don't pass an event
+      handleGenerate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
 
   const aggregates = computeAggregates(clients);
 
@@ -573,9 +582,12 @@ export default function ExecutiveGrantsPage() {
                     maxWidth: "40rem"
                   }}
                 >
-                  This narrative is what gets dropped into the body of the email
-                  when you click <strong>Email information</strong>. You can
-                  adjust the language here before sending.
+                  Between the dates of{" "}
+                  <strong>{startDate || "—"}</strong> to{" "}
+                  <strong>{endDate || "—"}</strong>, the narrative below
+                  summarises the key grant-relevant information, including
+                  self-identified groups. This is what will be used when you
+                  click <strong>Email information</strong>.
                 </p>
               </div>
 
@@ -792,7 +804,11 @@ function buildStatusPieData(aggregates) {
     data.push({ label: "Active", value: activeClients, color: "#6366f1" });
   }
   if (waitlistedClients > 0) {
-    data.push({ label: "Waitlisted", value: waitlistedClients, color: "#f97316" });
+    data.push({
+      label: "Waitlisted",
+      value: waitlistedClients,
+      color: "#f97316"
+    });
   }
   if (other > 0) {
     data.push({ label: "Other", value: other, color: "#4b5563" });
