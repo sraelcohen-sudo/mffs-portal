@@ -19,7 +19,7 @@ export default function ExecutiveGrantsPage() {
   const [contactEmails, setContactEmails] = useState([]);
   const [emailStatus, setEmailStatus] = useState("");
 
-  // Default to “last 30 days”
+  // Default to last 30 days
   useEffect(() => {
     const today = new Date();
     const endISO = today.toISOString().slice(0, 10);
@@ -69,14 +69,15 @@ export default function ExecutiveGrantsPage() {
           console.warn("Could not load supervisor emails for grants page:", e);
         }
 
-        // NOTE: If you later add an executives table, you can also pull emails here
-        // e.g., from "executive_users" or similar.
+        // If you later add an executives table, you can also pull emails here.
 
         setContactEmails(Array.from(emailsSet));
         setEmailStatus("");
       } catch (e) {
         console.error("Unexpected error loading contact emails:", e);
-        setEmailStatus("Could not load all contact emails (prototype-level only).");
+        setEmailStatus(
+          "Could not load all contact emails (prototype-level only)."
+        );
       }
     };
 
@@ -108,7 +109,7 @@ export default function ExecutiveGrantsPage() {
       if (error) {
         console.error("Error fetching clients for grant data:", error);
 
-        // Fallback: if the error looks like “column does not exist”, try without date filter
+        // Fallback if created_at column doesn’t exist
         const msg = (error.message || "").toLowerCase();
         const isMissingColumn =
           error.code === "42703" ||
@@ -132,7 +133,6 @@ export default function ExecutiveGrantsPage() {
       const rows = Array.isArray(data) ? data : [];
       setClients(rows);
 
-      // Build summary string
       const summary = buildGrantSummary(rows, startDate, endDate);
       setSummaryText(summary);
 
@@ -157,7 +157,7 @@ export default function ExecutiveGrantsPage() {
 
   const aggregates = computeAggregates(clients);
 
-  // Build and open email (does not auto-send; just opens client)
+  // Build and open email (does not auto-send; just opens mail client)
   const handleEmailInformation = () => {
     if (!startDate || !endDate) {
       setEmailStatus("Select a date range and generate the summary first.");
@@ -192,9 +192,11 @@ export default function ExecutiveGrantsPage() {
         identityLines.push(`- ${label}: ${count} clients`);
       }
       if (arr.length > top.length) {
-        identityLines.push(`- Other identity markers recorded: ${
-          arr.length - top.length
-        } additional categories`);
+        identityLines.push(
+          `- Other identity markers recorded: ${
+            arr.length - top.length
+          } additional categories`
+        );
       }
     } else {
       identityLines.push(
@@ -270,9 +272,7 @@ export default function ExecutiveGrantsPage() {
               type="button"
             >
               <div className="sidebar-link-title">Grant data</div>
-              <div className="sidebar-link-subtitle">
-                Reporting snapshot
-              </div>
+              <div className="sidebar-link-subtitle">Reporting snapshot</div>
             </button>
 
             <Link href="/logout">
@@ -469,7 +469,13 @@ export default function ExecutiveGrantsPage() {
                 >
                   Counts for this period
                 </h2>
-                <div className="grid grid-tiles">
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "0.75rem"
+                  }}
+                >
                   <MetricTile
                     label="Active clients"
                     value={aggregates.activeClients}
@@ -639,7 +645,6 @@ function computeAggregates(clients) {
 }
 
 function extractIdentityTags(client) {
-  // Try several possible shapes, but stay safe if fields are missing
   if (!client || typeof client !== "object") return [];
 
   if (Array.isArray(client.identity_tags)) {
@@ -699,10 +704,47 @@ function buildGrantSummary(clients, startDate, endDate) {
 
 function MetricTile({ label, value, hint }) {
   return (
-    <article className="card">
-      <h3 className="card-label">{label}</h3>
-      <p className="card-metric">{value}</p>
-      {hint && <p className="card-caption">{hint}</p>}
+    <article
+      style={{
+        flex: "1 1 12rem",
+        minWidth: "12rem",
+        maxWidth: "14rem",
+        padding: "0.65rem 0.85rem",
+        borderRadius: "0.9rem",
+        border: "1px solid rgba(55,65,81,0.9)",
+        backgroundColor: "rgba(15,23,42,1)",
+        display: "grid",
+        gap: "0.2rem"
+      }}
+    >
+      <h3
+        style={{
+          fontSize: "0.8rem",
+          fontWeight: 500,
+          color: "#e5e7eb"
+        }}
+      >
+        {label}
+      </h3>
+      <p
+        style={{
+          fontSize: "1.25rem",
+          fontWeight: 600,
+          color: "#f9fafb"
+        }}
+      >
+        {value}
+      </p>
+      {hint && (
+        <p
+          style={{
+            fontSize: "0.72rem",
+            color: "#9ca3af"
+          }}
+        >
+          {hint}
+        </p>
+      )}
     </article>
   );
 }
