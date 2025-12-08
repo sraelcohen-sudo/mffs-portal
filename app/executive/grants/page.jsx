@@ -84,10 +84,21 @@ export default function ExecutiveGrantsPage() {
 
   const handleGenerate = async (e) => {
     e?.preventDefault?.();
-    if (!supabase) return;
 
     if (!startDate || !endDate) {
       setStatusMessage("Please select both a start and end date.");
+      return;
+    }
+
+    // If Supabase is missing / misconfigured, just fall back to fake data
+    if (!supabase) {
+      const fakeClients = buildFakeClients(startDate, endDate, 10000);
+      setClients(fakeClients);
+      const summary = buildGrantSummary(fakeClients, startDate, endDate);
+      setSummaryText(summary);
+      setStatusMessage(
+        "Supabase is not configured; using synthetic data for this summary."
+      );
       return;
     }
 
@@ -97,7 +108,7 @@ export default function ExecutiveGrantsPage() {
     try {
       let query = supabase.from("clients").select("*");
 
-      // Try date filtering; if created_at doesn’t exist, we’ll catch the error.
+      // Try date filtering
       query = query
         .gte("created_at", `${startDate}T00:00:00`)
         .lte("created_at", `${endDate}T23:59:59`);
@@ -107,7 +118,6 @@ export default function ExecutiveGrantsPage() {
       if (error) {
         console.error("Error fetching clients for grant data:", error);
 
-        // Fallback if created_at column doesn’t exist
         const msg = (error.message || "").toLowerCase();
         const isMissingColumn =
           error.code === "42703" ||
@@ -121,28 +131,31 @@ export default function ExecutiveGrantsPage() {
           }
           data = fallback.data || [];
           setStatusMessage(
-            "Date filtering is not available (missing created_at column). Showing all clients instead."
+            "Date filtering is not available (missing created_at column). Showing all visible clients instead."
           );
         } else {
           throw error;
         }
       }
 
-      const rows = Array.isArray(data) ? data : [];
-      setClients(rows);
+      let rows = Array.isArray(data) ? data : [];
 
-      const summary = buildGrantSummary(rows, startDate, endDate);
-      setSummaryText(summary);
-
-      if (!rows.length) {
+      // 🔥 If Supabase returns 0 rows (RLS, empty table, etc.), build synthetic clients in memory
+      if (rows.length === 0) {
+        const fakeClients = buildFakeClients(startDate, endDate, 10000);
+        rows = fakeClients;
         setStatusMessage(
-          "No client records found for this range (or for the current data)."
+          "No clients were returned from Supabase in this range; using synthetic data for this grant snapshot."
         );
       } else {
         setStatusMessage(
           `Grant summary generated from ${rows.length} clients in this date range.`
         );
       }
+
+      setClients(rows);
+      const summary = buildGrantSummary(rows, startDate, endDate);
+      setSummaryText(summary);
     } catch (e) {
       console.error("Unexpected error building grant summary:", e);
       setStatusMessage(
@@ -158,7 +171,6 @@ export default function ExecutiveGrantsPage() {
   // AUTO-RUN once dates are set (so you see data right away)
   useEffect(() => {
     if (startDate && endDate) {
-      // fire and forget; we don't pass an event
       handleGenerate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -498,7 +510,7 @@ export default function ExecutiveGrantsPage() {
                   <MetricTile
                     label="Total clients considered"
                     value={aggregates.totalClients}
-                    hint="Rows returned for this range"
+                    hint="Rows returned for this range (or synthetic data)"
                   />
                   <MetricTile
                     label="Identity tags seen"
@@ -628,6 +640,66 @@ const dateInputStyle = {
   color: "#e5e7eb"
 };
 
+/* ───────── Fake data generator ───────── */
+
+const IDENTITY_VOCAB = [
+  "Transgender women and girls",
+  "Transgender men and boys",
+  "Non-binary and gender diverse",
+  "Two-Spirit",
+  "Indigenous",
+  "Black",
+  "Racialized",
+  "Disabled",
+  "Unemployed persons",
+  "Precariously employed persons",
+  "Single parents",
+  "Immigrants and refugees",
+  "Newcomers",
+  "Rural or remote residents",
+  "Survivors of violence",
+  "2SLGBTQIA+ persons",
+  "Students",
+  "Seniors",
+  "People living with chronic illness",
+  "People with mental health disabilities"
+];
+
+function buildFakeClients(startDate, endDate, count = 10000) {
+  const clients = [];
+
+  const start = new Date(startDate || Date.now());
+  const end = new Date(endDate || Date.now());
+  const startTime = start.getTime();
+  const endTime = end.getTime();
+  const range = Math.max(endTime - startTime, 1);
+
+  for (let i = 0; i < count; i++) {
+    const r = Math.random();
+    const status =
+      r < 0.6 ? "active" : r < 0.85 ? "waitlisted" : "closed";
+
+    const createdAtTime = startTime + Math.random() * range;
+    const createdAt = new Date(createdAtTime).toISOString();
+
+    const tagCount = 1 + Math.floor(Math.random() * 4);
+    const shuffled = [...IDENTITY_VOCAB].sort(
+      () => Math.random() - 0.5
+    );
+    const tags = shuffled.slice(0, tagCount);
+
+    clients.push({
+      id: `fake-${i}`,
+      full_name: `Synthetic Client ${i + 1}`,
+      status,
+      created_at: createdAt,
+      characteristics: tags
+    });
+  }
+
+  return clients;
+}
+
 /* ───────── Aggregation helpers ───────── */
 
 function computeAggregates(clients) {
@@ -694,7 +766,9 @@ function buildGrantSummary(clients, startDate, endDate) {
 
   // Identity breakdown as a bullet list
   if (identityCounts && identityCounts.size > 0) {
-    const all = Array.from(identityCounts.entries()).sort((a, b) => b[1] - a[1]);
+    const all = Array.from(identityCounts.entries()).sort(
+      (a, b) => b[1] - a[1]
+    );
 
     const maxLines = 15;
     const top = all.slice(0, maxLines);
@@ -824,7 +898,9 @@ function buildIdentityPieData(identityCounts) {
     return [{ label: "No identity data", value: 1, color: "#4b5563" }];
   }
 
-  const all = Array.from(identityCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const all = Array.from(identityCounts.entries()).sort(
+    (a, b) => b[1] - a[1]
+  );
   const top = all.slice(0, 5);
   const rest = all.slice(5);
   const palette = ["#22c55e", "#06b6d4", "#f59e0b", "#ec4899", "#a855f7"];
@@ -848,7 +924,6 @@ function buildIdentityPieData(identityCounts) {
 function PieChart({ title, subtitle, data }) {
   const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
 
-  // Build conic-gradient stops
   let currentAngle = 0;
   const segments = data.map((d) => {
     const angle = (d.value / total) * 360;
